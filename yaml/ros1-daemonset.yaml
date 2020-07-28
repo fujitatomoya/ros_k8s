@@ -13,16 +13,19 @@ spec:
     spec:
       containers:
       - name: ros1-master
+        tty: true
         image: ros:noetic
         command: ["/bin/bash", "-c"]
         args: ["source /opt/ros/$ROS_DISTRO/setup.bash && roscore"]
         imagePullPolicy: IfNotPresent
       - name: ros1-talker
+        tty: true
         image: ros:noetic
         command: ["/bin/bash", "-c"]
         args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rostopic pub -r 1 chatter std_msgs/String \"Hello, world\""]
         imagePullPolicy: IfNotPresent
       - name: ros1-listener
+        tty: true
         image: ros:noetic
         command: ["/bin/bash", "-c"]
         args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rostopic echo chatter"]

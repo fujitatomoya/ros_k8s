@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-talker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-talker
+  template:
+    metadata:
+      labels:
+        app: ros2-talker
+    spec:
+      containers:
+      - image: ros:foxy
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /chatter std_msgs/String \"data: Hello world\""]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-talker
+      nodeSelector:
+        nodetype: master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-listener
+  template:
+    metadata:
+      labels:
+        app: ros2-listener
+    spec:
+      containers:
+      - image: ros:foxy
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener
+      nodeSelector:
+        nodetype: slave
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
