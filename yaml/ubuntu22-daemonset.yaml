@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ubuntu22-deamonset
+spec:
+  selector:
+    matchLabels:
+      app: ubuntu22
+  template:
+    metadata:
+      labels:
+        app: ubuntu22
+    spec:
+      containers:
+      - name: ubuntu22
+        tty: true
+        image: ubuntu:22.04
+        command: ["/bin/bash", "-c"]
+        args: ["sleep 3600"]
+        imagePullPolicy: IfNotPresent
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
