@@ -1,0 +1,29 @@
+# Build:
+#  docker build --rm -f Dockerfile.rolling -t tomoyafujita/ros-rolling .
+#
+# Usage:
+#  docker pull tomoyafujita/ros-rolling
+
+FROM ros:rolling
+ENV ROS_DISTRO=rolling
+LABEL maintainer="Tomoya Fujita <tomoya.fujita825@gmail.com>"
+LABEL version="1.0"
+LABEL description="ROS rolling docker full image build"
+
+SHELL ["/bin/bash","-c"]
+
+# All apt-get commands start with an update, then install
+# and finally, a cache cleanup to keep the image size small.
+
+# Install packages
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y \
+    # Basic utilities just in case
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    # install full packages including GUI
+    ros-${ROS_DISTRO}-desktop \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
