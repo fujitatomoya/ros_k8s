@@ -89,6 +89,8 @@ kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
 	--discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241 
 ```
 
+***make sure you save the last line that shows how to join the cluster from worker nodes with tokens and CA hash.***
+
 ## Access API-server
 
 Make sure that we can access Kubernetes API server w/o any problems.
@@ -162,6 +164,15 @@ This node has joined the cluster:
 Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 
+Check the node availability on master node.
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o wide
+NAME                                    STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   6m21s   v1.25.5   192.168.1.248   <none>        Ubuntu 20.04.5 LTS   5.15.0-58-generic   containerd://1.5.9
+ubuntu                                  Ready    <none>          14s     v1.25.5   192.168.1.79    <none>        Ubuntu 20.04.5 LTS   5.4.0-1078-raspi    containerd://1.5.9
+```
+
 ## Deploy CNI plugin
 
 To get cluster nodes ready, we need to deploy CNI plugin as pods.
@@ -187,10 +198,21 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.c
 
 ```bash
 ### Install
-
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
 ### Uninstall
-
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
 ```
+
+Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
+This problem is issued on https://github.com/weaveworks/weave/issues/3976, and after this problem (docker image multi-arch support for arm64) has been addressed, we should use the latest deployment file.
+
+```bash
+### Install
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+### Uninstall
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+```
+
 
 - [Cilium](https://cilium.io/)
 
