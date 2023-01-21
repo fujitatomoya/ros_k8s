@@ -51,7 +51,7 @@ This environment is very much useful to try or test your container images or ser
 - [Build ROS / ROS 2 Full Docker Images](./docs/Build_Docker_Images.md)
 - [Setup Kuberenetes Cluster](./docs/Setup_Kubernetes_Cluster.md)
 - [Setup Virtualized Kuberenetes Cluster](./docs/Setup_Virtualized_Cluster.md)
-- [Deploy ROS / ROS 2 Application Container](./docs/Deploy_ROS_Application_Container.md)
+- [ROS / ROS 2 Deployment Demonstration](./docs/ROS_Deployment_Demonstration.md)
 
 ## Reference
 
