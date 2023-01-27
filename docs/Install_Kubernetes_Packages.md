@@ -65,7 +65,7 @@ Kustomize Version: v4.5.7
 The connection to the server localhost:8080 was refused - did you specify the right host or port?
 ```
 
-### Containerd v1.6.0 (Required for v1.26 or later)
+### Containerd v1.6.0 (Required for Kubernetes v1.26 or later)
 
 CRI v1alpha2 removed - kubelet will not register the node if the container runtime doesn't support CRI v1. So to work with Kubernetes 1.26, containerd 1.6.0 is required.
 This is required if using Kubernetes version 1.26 or later, see details https://blog.kubesimplify.com/kubernetes-126
