@@ -89,26 +89,37 @@ docker.io/library/ros:noetic
 
 ```bash
 tomoyafujita@~/DVT/github.com/fujitatomoya >export DOCKERHUB_USERNAME="tomoyafujita"
+tomoyafujita@~/DVT/github.com/fujitatomoya >export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+tomoyafujita@~/DVT/github.com/fujitatomoya >echo $ARCH
+amd64
 tomoyafujita@~/DVT/github.com/fujitatomoya >cd ros_k8s/docker/
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker build --rm -f Dockerfile.noetic -t $DOCKERHUB_USERNAME/ros-noetic .
+tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker build --rm -f Dockerfile.noetic -t $DOCKERHUB_USERNAME/ros:noetic-$ARCH .
 ...<snip>
 ```
 
-- Upload / Pull desktop image
+- Upload desktop image
 
 ```bash
+tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHUB_USERNAME/ros:noetic-$ARCH
+```
 
-tomoyafujita@~/DVT/github.com/fujitatomoya >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT >docker images | grep ros-noetic
-tomoyafujita/ros-noetic    latest         6cda625eb50c   35 minutes ago   3.44GB
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHUB_USERNAME/ros-noetic
-...<snip>
-tomoyafujita@~/DVT >docker pull $DOCKERHUB_USERNAME/ros-noetic
-Using default tag: latest
-latest: Pulling from tomoyafujita/ros-noetic
-Digest: sha256:b0b504895041e8f9893c3053211d3e497dc814189b05efcc6e3600064a7a4833
-Status: Image is up to date for tomoyafujita/ros-noetic:latest
-docker.io/tomoyafujita/ros-noetic:latest
+- Create and push manifest
+
+  This operation needs to be done just once to support multiple architecture image.
+  Here it describes how to support multiple architecture amd64 and arm64 platform.
+
+```bash
+tomoyafujita@~/DVT >docker manifest create $DOCKERHUB_USERNAME/ros:noetic $DOCKERHUB_USERNAME/ros:noetic-amd64 --amend $DOCKERHUB_USERNAME/ros:noetic-arm64
+tomoyafujita@~/DVT >docker manifest inspect $DOCKERHUB_USERNAME/ros:noetic
+tomoyafujita@~/DVT >docker manifest push $DOCKERHUB_USERNAME/ros:noetic
+```
+
+- Pull desktop image
+
+  If multiple architecture images are successfully uploaded, the following pull command will download the appropriate architecture image based on your machine.
+
+```bash
+tomoyafujita@~/DVT >docker pull $DOCKERHUB_USERNAME/ros:noetic
 ```
 
 ## ROS Rolling
@@ -129,34 +140,48 @@ docker.io/library/ros:noetic
 
 ```bash
 tomoyafujita@~/DVT/github.com/fujitatomoya >export DOCKERHUB_USERNAME="tomoyafujita"
+tomoyafujita@~/DVT/github.com/fujitatomoya >export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+tomoyafujita@~/DVT/github.com/fujitatomoya >echo $ARCH
+amd64
 tomoyafujita@~/DVT/github.com/fujitatomoya >cd ros_k8s/docker/
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker build --rm -f Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros-rolling .
+tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker build --rm -f Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros:rolling-$ARCH .
 ...<snip>
 ```
 
-- Upload / Pull desktop image
+- Upload desktop image
 
 ```bash
-tomoyafujita@~/DVT/github.com/fujitatomoya >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker images | grep ros-rolling
-tomoyafujita/ros-rolling   latest         b5d288a52b37   29 minutes ago   3.57GB
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHUB_USERNAME/ros-rolling
-...<snip>
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker pull $DOCKERHUB_USERNAME/ros-rolling
-Using default tag: latest
-latest: Pulling from tomoyafujita/ros-rolling
-Digest: sha256:258c9a4daa46bdb5054c2858590539da124fd3543067c366ed92e745681ba9e3
-Status: Image is up to date for tomoyafujita/ros-rolling:latest
-docker.io/tomoyafujita/ros-rolling:latest
+tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHUB_USERNAME/ros:rolling-$ARCH
+```
+
+- Create and push manifest
+
+  This operation needs to be done just once to support multiple architecture image.
+  Here it describes how to support multiple architecture amd64 and arm64 platform.
+
+```bash
+tomoyafujita@~/DVT >docker manifest create $DOCKERHUB_USERNAME/ros:rolling $DOCKERHUB_USERNAME/ros:rolling-amd64 --amend $DOCKERHUB_USERNAME/ros:rolling-arm64
+tomoyafujita@~/DVT >docker manifest inspect $DOCKERHUB_USERNAME/ros:rolling
+tomoyafujita@~/DVT >docker manifest push $DOCKERHUB_USERNAME/ros:rolling
+```
+
+- Pull desktop image
+
+  If multiple architecture images are successfully uploaded, the following pull command will download the appropriate architecture image based on your machine.
+
+```bash
+tomoyafujita@~/DVT >docker pull $DOCKERHUB_USERNAME/ros:rolling
 ```
 
 ## Verify Images
+
+Before deploying container images via Kubernetes, it would be nice to check if the container images can be running on the platform.
 
 - ROS talker and listener
 
 ```bash
 tomoyafujita@~/DVT >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT >docker run -it --rm $DOCKERHUB_USERNAME/ros-noetic /bin/bash
+tomoyafujita@~/DVT >docker run -it --rm $DOCKERHUB_USERNAME/ros:noetic /bin/bash
 root@ffedcfd31e7c:/# source /opt/ros/noetic/setup.bash
 root@ffedcfd31e7c:/# roscore &
 ...<snip>
@@ -182,7 +207,7 @@ root@ffedcfd31e7c:/# rosrun roscpp_tutorials talker & rosrun rospy_tutorials lis
 
 ```bash
 tomoyafujita@~/DVT >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT >docker run -it --rm $DOCKERHUB_USERNAME/ros-rolling /bin/bash
+tomoyafujita@~/DVT >docker run -it --rm $DOCKERHUB_USERNAME/ros:rolling /bin/bash
 root@266162be906b:/# source /opt/ros/rolling/setup.bash
 root@266162be906b:/# ros2 run demo_nodes_cpp talker & ros2 run demo_nodes_py listener
 [1] 88
