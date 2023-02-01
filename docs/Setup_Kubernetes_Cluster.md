@@ -54,7 +54,7 @@ kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitC
 ### See https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cat /etc/docker/daemon.json
 {
-    "exec-opts": ["native.cgroupdriver=systemd"] ### HERE HERE
+    "exec-opts": ["native.cgroupdriver=systemd"]
 }
 
 ### Restart docker systemd service
