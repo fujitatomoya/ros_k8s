@@ -6,46 +6,74 @@ Even virtualized environment, it will issue Kubernetes API from host system to K
 
 **The following commands requires `sudo` access permission to install packages.**
 
-## Docker
+## Docker / Containerd
+
+**Containerd v1.6.0 (Required for Kubernetes v1.26 or later)**
+
+CRI v1alpha2 removed - kubelet will not register the node if the container runtime doesn't support CRI v1. So to work with Kubernetes 1.26, containerd 1.6.0 is required.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt install docker.io
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt remove containerd docker.io
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common vim
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+
+### amd64
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+### aarch64
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt update -y
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt install -y docker-ce docker-ce-cli containerd.io
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# mkdir -p /etc/containerd
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# containerd config default | sudo tee /etc/containerd/config.toml
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# systemctl restart containerd
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# systemctl enable containerd
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# systemctl restart docker
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# systemctl enable docker
 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# docker version
-Client:
- Version:           20.10.12
+Client: Docker Engine - Community
+ Version:           20.10.23
  API version:       1.41
- Go version:        go1.16.2
- Git commit:        20.10.12-0ubuntu2~20.04.1
- Built:             Wed Apr  6 02:14:38 2022
+ Go version:        go1.18.10
+ Git commit:        7155243
+ Built:             Thu Jan 19 17:36:25 2023
  OS/Arch:           linux/amd64
  Context:           default
  Experimental:      true
 
-Server:
+Server: Docker Engine - Community
  Engine:
-  Version:          20.10.12
+  Version:          20.10.23
   API version:      1.41 (minimum version 1.12)
-  Go version:       go1.16.2
-  Git commit:       20.10.12-0ubuntu2~20.04.1
-  Built:            Thu Feb 10 15:03:35 2022
+  Go version:       go1.18.10
+  Git commit:       6051f14
+  Built:            Thu Jan 19 17:34:14 2023
   OS/Arch:          linux/amd64
   Experimental:     false
  containerd:
-  Version:          1.5.9-0ubuntu1~20.04.6
-  GitCommit:        
+  Version:          1.6.16
+  GitCommit:        31aa4358a36870b21a992d3ad2bef29e1d693bec
  runc:
-  Version:          1.1.0-0ubuntu1~20.04.2
-  GitCommit:        
+  Version:          1.1.4
+  GitCommit:        v1.1.4-0-g5fd4c4d
  docker-init:
   Version:          0.19.0
-  GitCommit:        
-
+  GitCommit:        de40ad0
 ```
 
 ## Kubernetes
 
-In this tutorial, we use Kuberentes version v1.25.5 instead of v1.26 that removes CRI v1alpha2, which could lead us complication and specific packages.
+In this tutorial, we use Kuberentes version v1.25.5 instead of v1.26 that removes CRI v1alpha2, which could lead us complication and unexpected problems.
 
 ### Kubernetes Install
 
@@ -63,25 +91,6 @@ WARNING: This version information is deprecated and will be replaced with the ou
 Client Version: version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitCommit:"804d6167111f6858541cef440ccc53887fbbc96a", GitTreeState:"clean", BuildDate:"2022-12-08T10:15:02Z", GoVersion:"go1.19.4", Compiler:"gc", Platform:"linux/amd64"}
 Kustomize Version: v4.5.7
 The connection to the server localhost:8080 was refused - did you specify the right host or port?
-```
-
-### Containerd v1.6.0 (Required for Kubernetes v1.26 or later)
-
-CRI v1alpha2 removed - kubelet will not register the node if the container runtime doesn't support CRI v1. So to work with Kubernetes 1.26, containerd 1.6.0 is required.
-This is required if using Kubernetes version 1.26 or later, see details https://blog.kubesimplify.com/kubernetes-126
-
-```bash
-root@ubuntu:~# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-### amd64
-root@ubuntu:~# add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-### aarch64
-root@ubuntu:~# add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-root@ubuntu:~# apt update -y
-root@ubuntu:~# apt install -y containerd.io
-root@ubuntu:~# mkdir -p /etc/containerd
-root@ubuntu:~# containerd config default | sudo tee /etc/containerd/config.toml
-root@ubuntu:~# systemctl restart containerd
-root@ubuntu:~# systemctl enable containerd
 ```
 
 ## Golang
