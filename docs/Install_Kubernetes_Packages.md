@@ -13,16 +13,13 @@ Even virtualized environment, it will issue Kubernetes API from host system to K
 CRI v1alpha2 removed - kubelet will not register the node if the container runtime doesn't support CRI v1. So to work with Kubernetes 1.26, containerd 1.6.0 is required.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt remove containerd docker.io
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt remove -y containerd docker.io
 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common vim
 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 
-### amd64
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-### aarch64
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# add-apt-repository "deb [arch=$(dpkg-architecture -q DEB_BUILD_ARCH)] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt update -y
 
@@ -30,7 +27,7 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt install -y docker-ce docker-ce
 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# mkdir -p /etc/containerd
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# containerd config default | sudo tee /etc/containerd/config.toml
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# containerd config default | tee /etc/containerd/config.toml
 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# systemctl restart containerd
 
