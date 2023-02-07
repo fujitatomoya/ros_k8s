@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roscore-deployment
+  labels:
+    app: roscore
+    nodetype: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      nodetype: master
+  template:
+    metadata:
+      labels:
+        nodetype: master
+    spec:
+      containers:
+      - name: roscore
+        tty: true
+        image: tomoyafujita/ros:noetic
+        command: ["/bin/bash", "-c"]
+        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && roscore"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && sleep 3600"]
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ROS_IP
+          value: ros-master
+        - name: ROS_HOSTNAME
+          value: ros-master
+        ports:
+        - containerPort: 11311
+          name: roscoreport
+      nodeSelector:
+        nodetype: master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+
+---
+
+### Headless service declaration.
+### This is required to map to app roscore so that other pods can DNS rosmaster IP address dynamically.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ros-master
+  labels:
+    app: roscore
+    nodetype: master
+spec:
+  clusterIP: None
+  ports:
+    - port: 11311
+  selector:
+    nodetype: master
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: talker-deployment
+  labels:
+    app: rostalker
+    nodetype: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      nodetype: worker
+  template:
+    metadata:
+      labels:
+        nodetype: worker
+    spec:
+      containers:
+      - name: rospublisher
+        tty: true
+        image: tomoyafujita/ros:noetic
+        command: ["/bin/bash", "-c"]
+        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rostopic pub -r 1 chatter std_msgs/String \"Hello, world\""]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && sleep 3600"]
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ROS_MASTER_URI
+          value: http://ros-master:11311
+        #- name: ROS_HOSTNAME
+        #  value: talker
+      nodeSelector:
+        nodetype: worker
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listener-deployment
+  labels:
+    app: roslitener
+    nodetype: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      nodetype: master
+  template:
+    metadata:
+      labels:
+        nodetype: master
+    spec:
+      containers:
+      - name: roslistener
+        tty: true
+        image: tomoyafujita/ros:noetic
+        command: ["/bin/bash", "-c"]
+        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rostopic echo chatter"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && sleep 3600"]
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ROS_MASTER_URI
+          value: http://ros-master:11311
+        #- name: ROS_HOSTNAME
+        #  value: listener
+      nodeSelector:
+        nodetype: master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule

@@ -13,6 +13,8 @@ This example deploys all ROS 1 application containers for each cluster node.
 That is said rosmaster(roscore) will be starting on each cluster node and other ROS application container will be connecting each other in the localhost system as following.
 We can even jump in any cotnainers running in Kubernetes Pods in the cluster to see actually ROS application running and communicating each other.
 
+**see deployment description [ROS DaemonSet Deployment](./../yaml/ros1-daemonset.yaml)**
+
 ![ROS noetic DaemonSet](./../images/ros1_daemonsets.png)
 
 ```bash
@@ -60,6 +62,12 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl delete -f ./yaml/r
 
 This example deploys distributed system with ROS, application containers will be deployed corresponding or targeted cluster node.
 In this case, rosmaster will be running on one of the cluster node, and other ROS application container will be connecting to that rosmaster as distributed application.
+
+Accessing rosmaster requires ROS nodes to know the rosmaster IP address to participate to ROS network.
+Most likely user sets the environmental variable before starting the application, but problem here is we do not know what IP address is assigned to rosmater container from kubernetes until it deploys application.
+This actually points out the operation cost for user that we do need to set the IP address in the ``
+
+**see deployment description [ROS Multiple Node Deployment](./../yaml/ros1-multinode.yaml)**
 
 ***INSERT PICTURE***
 
