@@ -7,7 +7,7 @@ This section provides several example deployments, starting with basic deploymen
 For ROS Noetic, we can use any CNI implementation (Flannel/Weave/Cilium).
 This is because that ROS Noetic network is based on TCP/UDP IP network w/o multicast.
 
-### ROS DaemonSet Deployment via CNI
+### ROS DaemonSet Deployment with CNI
 
 This example deploys all ROS 1 application containers for each cluster node.
 That is said rosmaster(roscore) will be starting on each cluster node and other ROS application container will be connecting each other in the localhost system as following.
@@ -58,29 +58,110 @@ exit
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl delete -f ./yaml/ros1-daemonset.yaml
 ```
 
-### ROS Multi-Node Deployment via CNI
+### ROS Multi-Node Deployment with CNI
 
 This example deploys distributed system with ROS, application containers will be deployed corresponding or targeted cluster node.
 In this case, rosmaster will be running on one of the cluster node, and other ROS application container will be connecting to that rosmaster as distributed application.
 
 Accessing rosmaster requires ROS nodes to know the rosmaster IP address to participate to ROS network.
 Most likely user sets the environmental variable before starting the application, but problem here is we do not know what IP address is assigned to rosmater container from kubernetes until it deploys application.
-This actually points out the operation cost for user that we do need to set the IP address in the ``
+Against this problem, it takes advantage of `Headless Service` so that application pods can DNS the hostname based on that service name, whose backend is corresponding application pods.
 
 **see deployment description [ROS Multiple Node Deployment](./../yaml/ros1-multinode.yaml)**
 
-***INSERT PICTURE***
+![ROS noetic Multiple Node Deployment](./../images/ros1_multiple_node.png)
+
+- Add labeling to cluster nodes.
+
+To manage the fleet, here it adds the lable to each node, which also used in the above yaml file.
 
 ```bash
-### Command Here
+### Show labels
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+ubuntu                                  Ready    <none>          116m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
+
+### Add labels
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=worker
+
+### Check labels
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
+ubuntu                                  Ready    <none>          125m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
 ```
 
-***Explanation about Headless Service***
+- ROS 1 Deployment and Check
 
-### ROS Multi-Node Deployment via Host Network
+```bash
+### Start deployment
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl apply -f ./yaml/ros1-multinode.yaml
+deployment.apps/roscore-deployment created
+service/rosmaster created
+deployment.apps/talker-deployment created
+service/ros-talker created
+deployment.apps/listener-deployment created
+service/ros-listener created
 
-This example deploys distributed system with ROS, application containers will be deployed corresponding or targeted cluster node.
-In this case, rosmaster will be running on one of the cluster node, and other ROS application container will be connecting to that rosmaster as distributed application.
+### Check service and pods are running
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -o wide
+NAME                                   READY   STATUS    RESTARTS   AGE   IP          NODE                                    NOMINATED NODE   READINESS GATES
+listener-deployment-5db88c77cf-79plx   1/1     Running   0          29m   10.32.0.5   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+roscore-deployment-5564978d47-bg4sj    1/1     Running   0          29m   10.32.0.4   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+talker-deployment-b468d7b5-2tf7k       1/1     Running   0          29m   10.44.0.1   ubuntu                                  <none>           <none>
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get services -o wide
+NAME           TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE    SELECTOR
+kubernetes     ClusterIP   10.96.0.1    <none>        443/TCP   132m   <none>
+ros-listener   ClusterIP   None         <none>        <none>    29m    node=listener
+ros-talker     ClusterIP   None         <none>        <none>    29m    node=talker
+rosmaster      ClusterIP   None         <none>        <none>    29m    node=roscore
+
+### Check logs for each container
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs listener-deployment-5db88c77cf-79plx
+[INFO] [1675841806.376591]: /listener_1_1675840013908I heard hello world 17918
+[INFO] [1675841806.476425]: /listener_1_1675840013908I heard hello world 17919
+[INFO] [1675841806.576383]: /listener_1_1675840013908I heard hello world 17920
+[INFO] [1675841806.676507]: /listener_1_1675840013908I heard hello world 17921
+[INFO] [1675841806.776493]: /listener_1_1675840013908I heard hello world 17922
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs talker-deployment-b468d7b5-2tf7k
+[ INFO] [1675841845.265373581]: hello world 18307
+[ INFO] [1675841845.365361230]: hello world 18308
+[ INFO] [1675841845.465356583]: hello world 18309
+[ INFO] [1675841845.565422917]: hello world 18310
+[ INFO] [1675841845.665285753]: hello world 18311
+
+### Login one of container to issue ROS CLI
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl exec --stdin --tty talker-deployment-b468d7b5-2tf7k -- /bin/bash
+root@talker-deployment-b468d7b5-2tf7k:/# source /opt/ros/$ROS_DISTRO/setup.bash
+root@talker-deployment-b468d7b5-2tf7k:/# rostopic list
+/chatter
+/rosout
+/rosout_agg
+root@talker-deployment-b468d7b5-2tf7k:/# rosnode list
+/listener_1_1675840013908
+/rosout
+/talker
+root@talker-deployment-b468d7b5-2tf7k:/# exit
+exit
+
+### Stop deployment
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl delete -f ./yaml/ros1-multinode.yaml
+deployment.apps "roscore-deployment" deleted
+service "rosmaster" deleted
+deployment.apps "talker-deployment" deleted
+service "ros-talker" deleted
+deployment.apps "listener-deployment" deleted
+service "ros-listener" deleted
+```
+
+### ROS Multi-Node Deployment with Host Network
+
+This example is almost same with previous deployment but selecting different node to deploy the pods.
+The main difference that this tutorial has is to bind `Host Network Interface` to the application pods, so that we can use container running on the host system to join the ROS network but Kubernetes cluster network.
 
 ***INSERT PICTURE***
 
@@ -93,4 +174,3 @@ We can access the ROS network via host system using docker container.
 ```bash
 ### Command Here
 ```
-
