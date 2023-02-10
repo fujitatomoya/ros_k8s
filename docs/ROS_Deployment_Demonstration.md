@@ -163,14 +163,76 @@ service "ros-listener" deleted
 This example is almost same with previous deployment but selecting different node to deploy the pods.
 The main difference that this tutorial has is to bind `Host Network Interface` to the application pods, so that we can use container running on the host system to join the ROS network but Kubernetes cluster network.
 
-***INSERT PICTURE***
+**see deployment description [ROS Multiple Node Deployment](./../yaml/ros1-multinode-hostnic.yaml)**
+
+![ROS noetic Multiple Node Deployment](./../images/ros1_multiple_node_hostnic.png)
+
+- Add labeling to cluster nodes.
+
+To target the containers to specific nodes, it also adds the lable to each node, which also used in the above yaml file.
 
 ```bash
-### Command Here
+### Show labels
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+ubuntu                                  Ready    <none>          116m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
+
+### Add labels
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=worker
+
+### Check labels
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
+ubuntu                                  Ready    <none>          125m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
 ```
 
-We can access the ROS network via host system using docker container.
+- ROS 1 Deployment and Check
+
+Start deployment using yaml description that binds host network interface to each container runtime.
 
 ```bash
-### Command Here
+### Start deployment
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl apply -f ./yaml/ros1-multinode-hostnic.yaml
+deployment.apps/roscore-deployment created
+deployment.apps/talker-deployment created
+deployment.apps/listener-deployment created
+
+### Check service and pods are running
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl get pods
+NAME                                  READY   STATUS    RESTARTS   AGE
+listener-deployment-8bbb859b4-x4hqb   1/1     Running   0          8m22s
+roscore-deployment-8487c6655d-7pqgs   1/1     Running   0          8m22s
+talker-deployment-5bf6f9ffbd-dmr8l    1/1     Running   0          8m22s
+```
+
+- Use Docker to join and play ROS 1 network
+
+ROS 1 deployment is running in the kubernetes pods and containers, but host network interface is bound to containers.
+That is said, using docker or container w/o kubernetes, we can join the ROS 1 network to see topics.
+This is useful to see the activity from the outside of kubernetes cluster.
+
+```bash
+### Start docker container using ros:noetic (nonroot user can be used)
+tomoyafujita@~ >docker pull tomoyafujita/ros:noetic
+noetic: Pulling from tomoyafujita/ros
+Digest: sha256:b2e99673bc2c37d9906f0a716fdd98f07e93dee8c354120432dbfdad97087b23
+Status: Downloaded newer image for tomoyafujita/ros:noetic
+docker.io/tomoyafujita/ros:noetic
+
+tomoyafujita@~ >docker run -it --privileged --network host --name noetic-docker  tomoyafujita/ros:noetic
+
+### Inside Container
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# export ROS_MASTER_URI=http://tomoyafujita-HP-Compaq-Elite-8300-SFF:11311
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# source /opt/ros/$ROS_DISTRO/setup.bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# rostopic list
+/chatter
+/rosout
+/rosout_agg
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# rosnode list
+/listener_1_1676011121015
+/rosout
+/talker
 ```

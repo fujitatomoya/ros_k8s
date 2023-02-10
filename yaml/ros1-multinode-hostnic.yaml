@@ -1,0 +1,112 @@
+############################
+### ROS master / roscore ###
+############################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roscore-deployment
+  labels:
+    app: ros1
+    node: roscore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      node: roscore
+  template:
+    metadata:
+      labels:
+        node: roscore
+    spec:
+      containers:
+      - name: roscore
+        tty: true
+        image: tomoyafujita/ros:noetic
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && roscore"]
+        imagePullPolicy: IfNotPresent
+      hostNetwork: true
+      nodeSelector:
+        nodetype: master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+
+---
+
+##################
+### ROS talker ###
+##################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: talker-deployment
+  labels:
+    app: ros1
+    node: talker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      node: talker
+  template:
+    metadata:
+      labels:
+        node: talker
+    spec:
+      containers:
+      - name: publisher
+        tty: true
+        image: tomoyafujita/ros:noetic
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rosrun roscpp_tutorials talker"]
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ROS_MASTER_URI
+          value: http://tomoyafujita-HP-Compaq-Elite-8300-SFF:11311
+      hostNetwork: true
+      nodeSelector:
+        nodetype: worker
+
+---
+
+####################
+### ROS listener ###
+####################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listener-deployment
+  labels:
+    app: ros1
+    node: listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      node: listener
+  template:
+    metadata:
+      labels:
+        node: listener
+    spec:
+      containers:
+      - name: subscription
+        tty: true
+        image: tomoyafujita/ros:noetic
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rosrun rospy_tutorials listener.py"]
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ROS_MASTER_URI
+          value: http://tomoyafujita-HP-Compaq-Elite-8300-SFF:11311
+      hostNetwork: true
+      nodeSelector:
+        nodetype: worker
