@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ros2-deamonset-1
+spec:
+  selector:
+    matchLabels:
+      app: ros2-deamonset-1
+  template:
+    metadata:
+      labels:
+        app: ros2-deamonset-1
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp talker"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-talker-1
+        env:
+          - name: ROS_LOCALHOST_ONLY
+            value: "1"
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_py listener"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-1
+        env:
+          - name: ROS_LOCALHOST_ONLY
+            value: "1"
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ros2-deamonset-2
+spec:
+  selector:
+    matchLabels:
+      app: ros2-deamonset-2
+  template:
+    metadata:
+      labels:
+        app: ros2-deamonset-2
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_py talker"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-talker-2
+        env:
+          - name: ROS_LOCALHOST_ONLY
+            value: "1"
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp listener"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-2
+        env:
+          - name: ROS_LOCALHOST_ONLY
+            value: "1"
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always

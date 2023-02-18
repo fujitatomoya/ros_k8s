@@ -94,7 +94,52 @@ data: Hello, I am talker-3
 ...
 ```
 
-### XXX
+### ROS 2 Localhost Only
+
+This sample description starts deployment multiple application pods for each cluster node.
+Application containers in each pod will only start communication in localhost only with `ROS_LOCALHOST_ONLY=1` environmental variable which is bound to application container runtime.
+
+The following diagram gives you an good example and overview what is going on this deployment.
+
+Taking advantage virtual network interface from CNI plugin, we can even have multiple localhost network in single cluster node.
+This is useful to multiple users in single cluster system, it just appears to be for users to have dedicated network interfaces so that it will not affect any other ROS 2 communication.
+
+**see deployment description [ROS 2 Simple Distributed System](./../yaml/ros2-localhost.yaml)**
+
+![ROS noetic Multiple Node Deployment](./../images/ros2_localhost_only.png)
+
+-  Start deployment and check availability
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-localhost.yaml
+daemonset.apps/ros2-deamonset-1 created
+daemonset.apps/ros2-deamonset-2 created
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE    IP           NODE                                    NOMINATED NODE   READINESS GATES
+ros2-deamonset-1-68bt2   2/2     Running   0          5m2s   10.44.0.3    ubuntu                                  <none>           <none>
+ros2-deamonset-1-zp2lq   2/2     Running   0          5m2s   10.32.0.11   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+ros2-deamonset-2-lgbnp   2/2     Running   0          5m     10.44.0.7    ubuntu                                  <none>           <none>
+ros2-deamonset-2-mf69r   2/2     Running   0          5m2s   10.32.0.12   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+```
+
+- Check each pod to see if localhost communication actually takes place.
+
+```bash
+root@ros2-talker-1-54f5fb9dcd-2dlv6:/# command terminated with exit code 137
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl exec --stdin --tty ros2-deamonset-1-68bt2 -- /bin/bash
+Defaulted container "ros2-talker-1" out of: ros2-talker-1, ros2-listener-1
+root@ros2-deamonset-1-68bt2:/# echo $ROS_LOCALHOST_ONLY
+1
+root@ros2-deamonset-1-68bt2:/# source /opt/ros/rolling/setup.bash
+root@ros2-deamonset-1-68bt2:/# ros2 node list
+/listener
+/talker
+root@ros2-deamonset-1-68bt2:/# ros2 topic list
+/chatter
+/parameter_events
+/rosout
+```
 
 ### XXX
 
