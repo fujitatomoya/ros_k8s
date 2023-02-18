@@ -1,28 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ros2-talker
+  name: ros2-talker-1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ros2-talker
+      app: ros2-talker-1
   template:
     metadata:
       labels:
-        app: ros2-talker
+        app: ros2-talker-1
     spec:
       containers:
-      - image: ros:foxy
+      - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /chatter std_msgs/String \"data: Hello world\""]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /chatter1 std_msgs/String \"data: Hello, I am talker-1\""]
         imagePullPolicy: IfNotPresent
         tty: true
-        name: ros2-talker
-      nodeSelector:
-        nodetype: master
+        name: ros2-talker-1
+      #nodeSelector:
+      #  nodetype: ubuntu
       tolerations:
       - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
       restartPolicy: Always
@@ -32,28 +35,168 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ros2-listener
+  name: ros2-talker-2
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ros2-listener
+      app: ros2-talker-2
   template:
     metadata:
       labels:
-        app: ros2-listener
+        app: ros2-talker-2
     spec:
       containers:
-      - image: ros:foxy
+      - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /chatter2 std_msgs/String \"data: Hello, I am talker-2\""]
         imagePullPolicy: IfNotPresent
         tty: true
-        name: ros2-listener
-      nodeSelector:
-        nodetype: slave
+        name: ros2-talker-2
+      #nodeSelector:
+      #  nodetype: tomoyafujita-hp-compaq-elite-8300-sff
       tolerations:
       - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-talker-3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-talker-3
+  template:
+    metadata:
+      labels:
+        app: ros2-talker-3
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /chatter3 std_msgs/String \"data: Hello, I am talker-3\""]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-talker-3
+      #nodeSelector:
+      #  nodetype: ubuntu
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-listener-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-listener-1
+  template:
+    metadata:
+      labels:
+        app: ros2-listener-1
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter1"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-1
+      #nodeSelector:
+      #  nodetype: tomoyafujita-hp-compaq-elite-8300-sff
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-listener-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-listener-2
+  template:
+    metadata:
+      labels:
+        app: ros2-listener-2
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter2"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-2
+      #nodeSelector:
+      #  nodetype: ubuntu
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-listener-3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-listener-3
+  template:
+    metadata:
+      labels:
+        app: ros2-listener-3
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter3"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-3
+      #nodeSelector:
+      #  nodetype: tomoyafujita-hp-compaq-elite-8300-sff
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
       restartPolicy: Always
