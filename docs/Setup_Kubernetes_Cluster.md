@@ -293,6 +293,68 @@ kube-system   cilium-pbntp                                                    1/
 kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
 ```
 
+## Kubernetes Dashboard
+
+Kubernetes officially provides default dashboard to monitor the cluster information.
+There are many monitoring workload from other vendors, but default dashboard does good enough to see the entire cluster activity even used to manage deployment via GUI.
+
+See details for [Deploy and Access the Kubernetes Dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/).
+
+```bash
+### Start dashboard
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+namespace/kubernetes-dashboard created
+serviceaccount/kubernetes-dashboard created
+service/kubernetes-dashboard created
+secret/kubernetes-dashboard-certs created
+secret/kubernetes-dashboard-csrf created
+secret/kubernetes-dashboard-key-holder created
+configmap/kubernetes-dashboard-settings created
+role.rbac.authorization.k8s.io/kubernetes-dashboard created
+clusterrole.rbac.authorization.k8s.io/kubernetes-dashboard created
+rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created
+clusterrolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created
+deployment.apps/kubernetes-dashboard created
+service/dashboard-metrics-scraper created
+deployment.apps/dashboard-metrics-scraper created
+
+### Check dashboard pods and service are running
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -n kubernetes-dashboard
+NAME                                         READY   STATUS    RESTARTS   AGE
+dashboard-metrics-scraper-64bcc67c9c-zmv7t   1/1     Running   0          55s
+kubernetes-dashboard-5c8bd6b59-ppmpz         1/1     Running   0          55s
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get service -n kubernetes-dashboard
+NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+dashboard-metrics-scraper   ClusterIP   10.111.141.248   <none>        8000/TCP   61s
+kubernetes-dashboard        ClusterIP   10.96.239.105    <none>        443/TCP    61s
+
+### Generate token to bind ServiceAccount
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s/yaml# kubectl apply -f dashboard-adminuser.yaml
+serviceaccount/admin-user created
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s/yaml# kubectl apply -f dashboard-rolebind.yaml
+clusterrolebinding.rbac.authorization.k8s.io/admin-user created
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s/yaml# kubectl -n kubernetes-dashboard create token admin-user
+eyJhbGciOiJSUzI1NiIsImtpZCI6ImVScUFkeS1oUkdJTkF3eGxMTkNfZ3Bxc3RjZndET3ZwNEJ2REJCbVAyU0EifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNjc2Njg3Nzg5LCJpYXQiOjE2NzY2ODQxODksImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJhZG1pbi11c2VyIiwidWlkIjoiMDA2NjhiOWQtYWUwNS00NDdmLWJkYjUtOGI4MGVjMTgzZTc1In19LCJuYmYiOjE2NzY2ODQxODksInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlcm5ldGVzLWRhc2hib2FyZDphZG1pbi11c2VyIn0.J19f30ptmJ_PIOmhf9hUMDUc-ajr6F7VSkUQyKaM10MIvXp99mO036kHnKQgJRj1P9K9IJwOTwHdikvrE2iupDLzwilIIbzDNzDhKTQzOgFYkwKL2xQlLv1pksA9UDm9eOJA3fXVhcJ22imyRSxh-IMB4jz7IVQVObaXoZGp04J3A0vzJoQPdPWfcJ1ezZvghlZsRrNkkuTrrH3Yek2yrB2keh6oBjWZtWG7zNHd8MXhO5K0NEP_lWWyTSDX2TI9gdgYHP12gUiD6t14gcbZCObRpV8-m3qtUTbMPR_3DBo-LwrGFL6pc-i6mysjZ8qq2ssD5sZRG4mcKuVoDsjVeg
+
+### Copy the above token
+
+### Start kube-proxy, this is required to proxy cluster network and host network.
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl proxy
+Starting to serve on 127.0.0.1:8001
+```
+
+Until here, Kubernetes dashboard is running in cluster and proxy bridges to localhost as shows above.
+
+Access http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login, to check if you can see the following page,.
+
+
+![Kubernetes Dashboard Frontpage](./../images/kubernetes_dashboard_frontpage.png)
+
+To login the dashboard, input the token which has been generated above procedure.
+Now you should be able to see the following Kubernetes cluster dashboard.
+
+![Kubernetes Dashboard Overview](./../images/kubernetes_dashboard_overview.png)
+
 
 ## Break down the cluster
 
