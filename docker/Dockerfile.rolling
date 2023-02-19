@@ -25,5 +25,7 @@ RUN apt-get update \
     dnsutils \
     # install full packages including GUI
     ros-${ROS_DISTRO}-desktop \
+    # install cyclonedds
+    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
