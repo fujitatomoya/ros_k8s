@@ -1,0 +1,44 @@
+### Fast-DDS specific configuration for ROS 2 environmental variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastdds-config-domain-5
+  namespace: default
+data:
+  ROS_DOMAIN_ID: "5"
+  RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastdds-config-domain-10
+  namespace: default
+data:
+  ROS_DOMAIN_ID: "10"
+  RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+
+---
+
+### Eclipse Cyclone DDS specific configuration for ROS 2 environmental variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cyclonedds-config
+  namespace: default
+data:
+  ROS_DOMAIN_ID: "15"
+  RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+
+---
+
+### RTI Connext DDS specific configuration for ROS 2 environmental variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: connext-config
+  namespace: default
+data:
+  ROS_DOMAIN_ID: "20"
+  RMW_IMPLEMENTATION: rmw_connextdds

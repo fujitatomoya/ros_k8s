@@ -27,7 +27,7 @@ So all discovery protocol just works out of the box like physical network.
 
 **see deployment description [ROS 2 Simple Distributed System](./../yaml/ros2-sample.yaml)**
 
-![ROS noetic Multiple Node Deployment](./../images/ros2_simple_sample.png)
+![ROS 2 Simple Distributed System](./../images/ros2_simple_sample.png)
 
 - Start deployment and check availability.
 
@@ -104,9 +104,9 @@ The following diagram gives you an good example and overview what is going on th
 Taking advantage virtual network interface from CNI plugin, we can even have multiple localhost network in single cluster node.
 This is useful to multiple users in single cluster system, it just appears to be for users to have dedicated network interfaces so that it will not affect any other ROS 2 communication.
 
-**see deployment description [ROS 2 Simple Distributed System](./../yaml/ros2-localhost.yaml)**
+**see deployment description [ROS 2 Localhost Only](./../yaml/ros2-localhost.yaml)**
 
-![ROS noetic Multiple Node Deployment](./../images/ros2_localhost_only.png)
+![ROS 2 Localhost Only](./../images/ros2_localhost_only.png)
 
 -  Start deployment and check availability
 
@@ -141,6 +141,111 @@ root@ros2-deamonset-1-68bt2:/# ros2 topic list
 /rosout
 ```
 
-### XXX
+### ROS 2 Logical Partition / Multiple RMW Implementation
 
-### XXX
+This section it will deploy the ROS 2 application containers with host network interface.
+And taking advantage of Kubernetes `ConfigMap` (Shared virtual storage) to bind ROS 2 specific environmental variable via initializing container runtime.
+After `ConfigMap` is created, in the yaml description, we can use those `key-value` content as environmental variables for ROS 2 containers, here it uses `ROS_DOMAIN_ID` and `RMW_IMPLEMENTATION` to have logical partition and different RMW implementation support.
+
+The advantage of this example is to isolate configuration data and runtime container completely, so that we can bind any configuration data to any container runtime when starting the deployment.
+
+**see deployment description [ROS 2 Domain Partition and ConfigMap](./../yaml/ros2-domain-configmap.yaml)**
+
+![ROS 2 Domain Partition and ConfigMap](./../images/ros2_domain_configmap.png)
+
+- Add labels
+
+In this example, we control fleet deployment based on nodetype labels.
+So we need to add labels for each cluster node as following.
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=edgeserver
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=edgedevice
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+NAME                                    STATUS   ROLES           AGE   VERSION   LABELS
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   12m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
+ubuntu                                  Ready    <none>          12m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=edgedevice
+```
+
+- Create `ConfigMap` in cluster system
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-config.yaml 
+configmap/fastdds-config-domain-5 created
+configmap/fastdds-config-domain-10 created
+configmap/cyclonedds-config created
+configmap/connext-config created
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get configmap
+NAME                       DATA   AGE
+connext-config             2      6s
+cyclonedds-config          2      6s
+fastdds-config-domain-10   2      6s
+fastdds-config-domain-5    2      6s
+kube-root-ca.crt           1      6h6m
+```
+
+- Start application pods
+
+Now `ConfigMap` is ready to bind to container runtime as shared storage, we can start the application containers to bind those configuration data as environment variable as we like.
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-domain-configmap.yaml
+pod/ros2-fastdds-talker-id5 created
+pod/ros2-fastdds-listener-id5 created
+pod/ros2-fastdds-talker-id10 created
+pod/ros2-fastdds-listener-id10 created
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get pods -o wide
+NAME                         READY   STATUS    RESTARTS      AGE   IP              NODE                                    NOMINATED NODE   READINESS GATES
+ros2-fastdds-listener-id10   1/1     Running   2 (14s ago)   19s   192.168.1.248   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+ros2-fastdds-listener-id5    1/1     Running   0             19s   192.168.1.79    ubuntu                                  <none>           <none>
+ros2-fastdds-talker-id10     1/1     Running   0             19s   192.168.1.79    ubuntu                                  <none>           <none>
+ros2-fastdds-talker-id5      1/1     Running   0             19s   192.168.1.248   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+```
+
+Now we can check if those containers running as expected,
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs ros2-fastdds-listener-id5 | head
+data: Hello, I am in the room 5
+---
+data: Hello, I am in the room 5
+---
+data: Hello, I am in the room 5
+---
+data: Hello, I am in the room 5
+---
+data: Hello, I am in the room 5
+---
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs ros2-fastdds-listener-id10 | head
+data: Hello, I am in the room 10
+---
+data: Hello, I am in the room 10
+---
+data: Hello, I am in the room 10
+---
+data: Hello, I am in the room 10
+---
+data: Hello, I am in the room 10
+---
+```
+
+- Using docker container to see the ROS 2 communication
+
+Since all containers bound to host network interface, we can see the ROS 2 communication via host network interface.
+We can use docker container to peek ROS 2 activity as following.
+
+```bash
+tomoyafujita@~ >docker run -it --privileged --network host --name rolling-docker  tomoyafujita/ros:rolling
+
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# export ROS_DOMAIN_ID=5
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# source /opt/ros/rolling/setup.bash 
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# ros2 topic list
+/fastdds_chatter_5
+/parameter_events
+/rosout
+```

@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ros2-fastdds-talker-id5
+  namespace: default
+spec:
+  containers:
+    - name: ros2-fastdds-talker-id5
+      image: tomoyafujita/ros:rolling
+      command: ["/bin/bash", "-c"]
+      envFrom:
+        - configMapRef:
+            name: fastdds-config-domain-5
+      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /fastdds_chatter_$ROS_DOMAIN_ID std_msgs/String \"data: Hello, I am in the room $ROS_DOMAIN_ID\""]
+      imagePullPolicy: IfNotPresent
+      tty: true
+  hostNetwork: true
+  nodeSelector:
+    nodetype: edgeserver
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ros2-fastdds-listener-id5
+  namespace: default
+spec:
+  containers:
+    - name: ros2-fastdds-listener-id5
+      image: tomoyafujita/ros:rolling
+      command: ["/bin/bash", "-c"]
+      envFrom:
+        - configMapRef:
+            name: fastdds-config-domain-5
+      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /fastdds_chatter_$ROS_DOMAIN_ID"]
+      imagePullPolicy: IfNotPresent
+      tty: true
+  hostNetwork: true
+  nodeSelector:
+    nodetype: edgedevice
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ros2-fastdds-talker-id10
+  namespace: default
+spec:
+  containers:
+    - name: ros2-fastdds-talker-id10
+      image: tomoyafujita/ros:rolling
+      command: ["/bin/bash", "-c"]
+      envFrom:
+        - configMapRef:
+            name: fastdds-config-domain-10
+      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /fastdds_chatter_$ROS_DOMAIN_ID std_msgs/String \"data: Hello, I am in the room $ROS_DOMAIN_ID\""]
+      imagePullPolicy: IfNotPresent
+      tty: true
+  hostNetwork: true
+  nodeSelector:
+    nodetype: edgedevice
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ros2-fastdds-listener-id10
+  namespace: default
+spec:
+  containers:
+    - name: ros2-fastdds-listener-id10
+      image: tomoyafujita/ros:rolling
+      command: ["/bin/bash", "-c"]
+      envFrom:
+        - configMapRef:
+            name: fastdds-config-domain-10
+      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /fastdds_chatter_$ROS_DOMAIN_ID"]
+      imagePullPolicy: IfNotPresent
+      tty: true
+  hostNetwork: true
+  nodeSelector:
+    nodetype: edgeserver
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  restartPolicy: Always

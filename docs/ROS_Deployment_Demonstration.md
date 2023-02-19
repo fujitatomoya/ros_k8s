@@ -73,7 +73,7 @@ Against this problem, it takes advantage of `Headless Service` so that applicati
 
 - Add labeling to cluster nodes.
 
-To manage the fleet, here it adds the lable to each node, which also used in the above yaml file.
+To manage the fleet, here it adds the label to each node, which also used in the above yaml file.
 
 ```bash
 ### Show labels
