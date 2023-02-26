@@ -40,7 +40,6 @@ This will set up Kubernetes cluster on host system as followings.
 
 - Virtualized Instance
 
-***T.B.D, see https://qiita.com/tomoyafujita/items/5a3c06705f62c5732bc5***
 This is virtualized Kubernetes cluster environment which can be established on single physical host.
 We can use this environment if container requires pure computation resource but hardware or physical sensor devices.
 This environment is very much useful to try or test your container images or services to make sure if those work as expected, and easy to break down whole Kubernetes cluster with one command.
