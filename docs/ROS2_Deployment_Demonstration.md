@@ -76,17 +76,17 @@ Subscribed topics:
  * /chatter2 [std_msgs/msg/String] 1 subscriber
  * /chatter3 [std_msgs/msg/String] 1 subscriber
 
-root@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter1
+root@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter1 std_msgs/String
 data: Hello, I am talker-1
 ---
 data: Hello, I am talker-1
 ---
-^Croot@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter2
+^Croot@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter2 std_msgs/String
 data: Hello, I am talker-2
 ---
 data: Hello, I am talker-2
 ---
-^Croot@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter3
+^Croot@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter3 std_msgs/String
 data: Hello, I am talker-3
 ---
 data: Hello, I am talker-3
