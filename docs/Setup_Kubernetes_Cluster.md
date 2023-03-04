@@ -196,23 +196,90 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.c
 
 - [WeaveNet](https://github.com/weaveworks/weave)
 
-```bash
-### Install
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
-### Uninstall
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
-```
+  - Start/Stop WeaveNet DaemonSets
 
-Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
-This problem is issued on https://github.com/weaveworks/weave/issues/3976, and after this problem (docker image multi-arch support for arm64) has been addressed, we should use the latest deployment file.
+    ```bash
+    ### Install
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
+    ### Uninstall
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
+    ```
 
-```bash
-### Install
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-### Uninstall
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-```
+    Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
+    This problem is issued on https://github.com/weaveworks/weave/issues/3976, and after this problem (docker image multi-arch support for arm64) has been addressed, we should use the latest deployment file.
 
+    ```bash
+    ### Install
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+    ### Uninstall
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+    ```
+
+  - Security Encryption
+
+    WeaveNet provides authentication and encryption based on password, which is used for create session keys for the communication between peers.
+    WeaveNet uses fast datapath via Kernel OpenVswitch, and IPsec ESP can be enabled statically before any application pods are created.
+
+    ```bash
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# curl -L git.io/weave -o /usr/local/bin/weave
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# chmod a+x /usr/local/bin/weave
+
+    ### Weave CLI installs docker container to connect weavenet daemon to execute the command
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# weave status
+
+            Version: 2.8.1 (failed to check latest version - see logs; next check at 2023/03/05 01:37:01)
+
+            Service: router
+          Protocol: weave 1..2
+              Name: 16:8b:92:14:73:c4(tomoyafujita-hp-compaq-elite-8300-sff)
+        Encryption: disabled
+      PeerDiscovery: enabled
+            Targets: 1
+        Connections: 1 (1 established)
+              Peers: 2 (with 2 established connections)
+    TrustedSubnets: none
+
+            Service: ipam
+            Status: ready
+              Range: 10.32.0.0/12
+      DefaultSubnet: 10.32.0.0/12
+    ```
+
+    As we can see above, WeaveNet does not enable encryption by default.
+    Adding environmental variable with your own password can enable WeaveNet encryption, the following shows how to do so via Kubernetes Secret. (which can be bound to application pods at initialization.)
+
+    ```bash
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# openssl rand -hex 128 > weave-passwd
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl create secret -n kube-system generic weave-passwd --from-file=./weave-passwd
+    secret/weave-passwd created
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl describe secret -n kube-system weave-passwd
+    Name:         weave-passwd
+    Namespace:    kube-system
+    Labels:       <none>
+    Annotations:  <none>
+
+    Type:  Opaque
+
+    Data
+    ====
+    weave-passwd:  257 bytes
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl edit --namespace=kube-system daemonset weave-net
+    daemonset.apps/weave-net edited
+
+    ### add the following under `spec.template.spec.containers`
+    env:
+    - name: WEAVE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: weave-passwd
+          key: weave-passwd
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# weave status | grep Encryption
+        Encryption: enabled
+    ```
 
 - [Cilium](https://cilium.io/)
 
