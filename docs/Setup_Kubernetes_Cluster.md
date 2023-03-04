@@ -458,7 +458,6 @@ Until here, Kubernetes dashboard is running in cluster and proxy bridges to loca
 
 Access http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login, to check if you can see the following page,.
 
-
 ![Kubernetes Dashboard Frontpage](./../images/kubernetes_dashboard_frontpage.png)
 
 To login the dashboard, input the token which has been generated above procedure.
@@ -466,12 +465,15 @@ Now you should be able to see the following Kubernetes cluster dashboard.
 
 ![Kubernetes Dashboard Overview](./../images/kubernetes_dashboard_overview.png)
 
-
 ## Break down the cluster
 
 the following command needs to be issues on each node in the cluster system.
 
 ```bash
-root@ubuntu:~# kubeadm reset -f
-root@ubuntu:~# \rm -rf $HOME/.kube/config
+kubeadm reset -f
+\rm -rf $HOME/.kube/config
+rm -rf /etc/cni/net.d
+
+### If WeaveNet CNI was deployed
+rm -rf /var/lib/weave
 ```
