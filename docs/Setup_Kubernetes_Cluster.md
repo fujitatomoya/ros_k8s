@@ -283,82 +283,126 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.c
 
 - [Cilium](https://cilium.io/)
 
-You can refer to [Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick) for Kubernetes if needed.
+  You can refer to [Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick) for Kubernetes if needed.
 
-- Install Cilium CLI
+  - Install Cilium CLI
 
-This operation is only requires once for master node.
-The Cilium CLI can be used to install Cilium, inspect the state of a Cilium installation, and enable/disable various features.
+    This operation is only requires once for master node.
+    The Cilium CLI can be used to install Cilium, inspect the state of a Cilium installation, and enable/disable various features.
 
-```bash
-tomoyafujita@~/DVT >sudo su -
-[sudo] password for tomoyafujita: 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cd <repo>/scripts
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# ./install_cilium_cli.sh 
-Cilium CLI version is v0.12.12
-CPU architecture is amd64
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100 25.4M  100 25.4M    0     0  10.2M      0  0:00:02  0:00:02 --:--:-- 14.5M
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100    92  100    92    0     0    245      0 --:--:-- --:--:-- --:--:--   245
-cilium-linux-amd64.tar.gz: OK
-cilium
-Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
-```
+    ```bash
+    tomoyafujita@~/DVT >sudo su -
+    [sudo] password for tomoyafujita:
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cd <repo>/scripts
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# ./install_cilium_cli.sh
+    Cilium CLI version is v0.12.12
+    CPU architecture is amd64
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                    Dload  Upload   Total   Spent    Left  Speed
+      0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+    100 25.4M  100 25.4M    0     0  10.2M      0  0:00:02  0:00:02 --:--:-- 14.5M
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                    Dload  Upload   Total   Spent    Left  Speed
+      0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+    100    92  100    92    0     0    245      0 --:--:-- --:--:-- --:--:--   245
+    cilium-linux-amd64.tar.gz: OK
+    cilium
+    Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
+    ```
 
-- Install Cilium CNI to the Kubernetes Cluster
+  - Install Cilium CNI to the Kubernetes Cluster
 
-```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium version
-cilium-cli: v0.12.12 compiled with go1.19.4 on linux/amd64
-cilium image (default): v1.12.5
-cilium image (stable): v1.12.5
-cilium image (running): unknown. Unable to obtain cilium version, no cilium pods found in namespace "kube-system"
+    ```bash
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium version
+    cilium-cli: v0.12.12 compiled with go1.19.4 on linux/amd64
+    cilium image (default): v1.12.5
+    cilium image (stable): v1.12.5
+    cilium image (running): unknown. Unable to obtain cilium version, no cilium pods found in namespace "kube-system"
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium install
-ℹ️  Using Cilium version 1.12.5
-🔮 Auto-detected cluster name: kubernetes
-🔮 Auto-detected datapath mode: tunnel
-🔮 Auto-detected kube-proxy has been installed
-ℹ️  helm template --namespace kube-system cilium cilium/cilium --version 1.12.5 --set cluster.id=0,cluster.name=kubernetes,encryption.nodeEncryption=false,kubeProxyReplacement=disabled,operator.replicas=1,serviceAccounts.cilium.name=cilium,serviceAccounts.operator.name=cilium-operator,tunnel=vxlan
-ℹ️  Storing helm values file in kube-system/cilium-cli-helm-values Secret
-🔑 Created CA in secret cilium-ca
-🔑 Generating certificates for Hubble...
-🚀 Creating Service accounts...
-🚀 Creating Cluster roles...
-🚀 Creating ConfigMap for Cilium version 1.12.5...
-🚀 Creating Agent DaemonSet...
-🚀 Creating Operator Deployment...
-⌛ Waiting for Cilium to be installed and ready...
-♻️  Restarting unmanaged pods...
-♻️  Restarted unmanaged pod kube-system/coredns-565d847f94-sn4ht
-✅ Cilium was successfully installed! Run 'cilium status' to view installation health
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium install
+    ℹ️  Using Cilium version 1.12.5
+    🔮 Auto-detected cluster name: kubernetes
+    🔮 Auto-detected datapath mode: tunnel
+    🔮 Auto-detected kube-proxy has been installed
+    ℹ️  helm template --namespace kube-system cilium cilium/cilium --version 1.12.5 --set cluster.id=0,cluster.name=kubernetes,encryption.nodeEncryption=false,kubeProxyReplacement=disabled,operator.replicas=1,serviceAccounts.cilium.name=cilium,serviceAccounts.operator.name=cilium-operator,tunnel=vxlan
+    ℹ️  Storing helm values file in kube-system/cilium-cli-helm-values Secret
+    🔑 Created CA in secret cilium-ca
+    🔑 Generating certificates for Hubble...
+    🚀 Creating Service accounts...
+    🚀 Creating Cluster roles...
+    🚀 Creating ConfigMap for Cilium version 1.12.5...
+    🚀 Creating Agent DaemonSet...
+    🚀 Creating Operator Deployment...
+    ⌛ Waiting for Cilium to be installed and ready...
+    ♻️  Restarting unmanaged pods...
+    ♻️  Restarted unmanaged pod kube-system/coredns-565d847f94-sn4ht
+    ✅ Cilium was successfully installed! Run 'cilium status' to view installation health
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium status
-    /¯¯\
- /¯¯\__/¯¯\    Cilium:         OK
- \__/¯¯\__/    Operator:       OK
- /¯¯\__/¯¯\    Hubble:         disabled
- \__/¯¯\__/    ClusterMesh:    disabled
-    \__/
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium status
+        /¯¯\
+    /¯¯\__/¯¯\    Cilium:         OK
+    \__/¯¯\__/    Operator:       OK
+    /¯¯\__/¯¯\    Hubble:         disabled
+    \__/¯¯\__/    ClusterMesh:    disabled
+        \__/
 
-Deployment        cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
-DaemonSet         cilium             Desired: 2, Ready: 2/2, Available: 2/2
-Containers:       cilium             Running: 2
-                  cilium-operator    Running: 1
-Cluster Pods:     2/3 managed by Cilium
-Image versions    cilium             quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5: 2
-                  cilium-operator    quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e: 1
+    Deployment        cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+    DaemonSet         cilium             Desired: 2, Ready: 2/2, Available: 2/2
+    Containers:       cilium             Running: 2
+                      cilium-operator    Running: 1
+    Cluster Pods:     2/3 managed by Cilium
+    Image versions    cilium             quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5: 2
+                      cilium-operator    quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e: 1
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A | grep cilium
-kube-system   cilium-operator-74b8595d7b-v6j42                                1/1     Running   0          3m43s
-kube-system   cilium-pbntp                                                    1/1     Running   0          3m43s
-kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
-```
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A | grep cilium
+    kube-system   cilium-operator-74b8595d7b-v6j42                                1/1     Running   0          3m43s
+    kube-system   cilium-pbntp                                                    1/1     Running   0          3m43s
+    kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
+    ```
+
+  - Enable Security Encryption
+    Cilium provides security encryption feature either IPsec or Wireguard statically during initialization.
+    Packets are not encrypted when they are destined to the same node from which they were sent. This behavior is intended.
+    Encryption would provide no benefits in that case, given that the raw traffic can be observed on the node anyway.
+    Encryption requires key, the following procedure uses Kubernetes Secret to bind the key for cilium encryption.
+
+    ```bash
+    ### If cilium is already deployed, uninstall from cluster system
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium uninstall
+
+    ### Create Kubernetes Secret that is used for encryption
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# PSK=($(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64))
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# echo $PSK
+    47b57a0241e4c5df0a196ccfbcc7ee1aff204100
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3 rfc4106(gcm(aes)) $PSK 128"
+    secret/cilium-ipsec-keys created
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl describe secret -n kube-system cilium-ipsec-keys
+    Name:         cilium-ipsec-keys
+    Namespace:    kube-system
+    Labels:       <none>
+    Annotations:  <none>
+
+    Type:  Opaque
+
+    Data
+    ====
+    keys:  64 bytes
+
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# SECRET="$(kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data}' -n kube-system | jq -r ".keys")"
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# echo $SECRET | base64 --decode
+    3 rfc4106(gcm(aes)) 47b57a0241e4c5df0a196ccfbcc7ee1aff204100 128
+
+    ### Start deployment with enabling encryption
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium install --encryption ipsec
+
+    ### Check IPsec is enabled
+    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium config view | grep ipsec
+    enable-ipsec                               true
+    ipsec-key-file                             /etc/ipsec/keys
+    ```
 
 ## Kubernetes Dashboard
 
