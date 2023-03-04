@@ -118,7 +118,7 @@ spec:
       containers:
       - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter1"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter1 std_msgs/String"]
         imagePullPolicy: IfNotPresent
         tty: true
         name: ros2-listener-1
@@ -152,7 +152,7 @@ spec:
       containers:
       - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter2"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter2 std_msgs/String"]
         imagePullPolicy: IfNotPresent
         tty: true
         name: ros2-listener-2
@@ -186,7 +186,7 @@ spec:
       containers:
       - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter3"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /chatter3 std_msgs/String"]
         imagePullPolicy: IfNotPresent
         tty: true
         name: ros2-listener-3
