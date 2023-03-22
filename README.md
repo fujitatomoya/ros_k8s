@@ -52,6 +52,7 @@ This environment is very much useful to try or test your container images or ser
 - [Setup Virtualized Kuberenetes Cluster](./docs/Setup_Virtualized_Cluster.md)
 - [ROS Deployment Demonstration](./docs/ROS_Deployment_Demonstration.md)
 - [ROS 2 Deployment Demonstration](./docs/ROS2_Deployment_Demonstration.md)
+- [ROS 2 Deployment Intermediate](./docs/ROS2_Deployment_Intermediate.md)
 
 ## Reference
 
