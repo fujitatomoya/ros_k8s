@@ -4,7 +4,16 @@ These packages are required to both cluster on host and virtualized environment.
 And all cluster nodes must install the required packages to join the cluster, that is said we need to install these packages on every single host system.
 Even virtualized environment, it will issue Kubernetes API from host system to Kuberentes API server running in the virtualized environment, so that it can provide the consistent user experience.
 
+To install all related packages to host system, you can use [install_k8s_packages.sh](../scripts/install_k8s_packages.sh).
+
 **The following commands requires `sudo` access permission to install packages.**
+
+```bash
+cd ros_k8s/scripts
+./install_k8s_packages.sh
+```
+
+The following are manual steps to install packages that you can refer to understand what packages are actually installed.
 
 ## Docker / Containerd
 
