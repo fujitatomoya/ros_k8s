@@ -68,7 +68,7 @@ In this tutorial, we use Kuberentes version v1.25.5 instead of v1.26 that remove
 apt install -y apt-transport-https curl
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
 apt-add-repository -y "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-apt install -y kubeadm=1.25.5-00 kubelet=1.25.5-00 kubectl=1.25.5-00
+apt install -y --allow-downgrades kubeadm=1.25.5-00 kubelet=1.25.5-00 kubectl=1.25.5-00
 kubeadm version
 ### kubectl version will try to access server that leads to error to exit this script
 kubectl version --client
