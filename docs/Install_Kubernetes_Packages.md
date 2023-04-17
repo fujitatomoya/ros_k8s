@@ -15,6 +15,27 @@ cd ros_k8s/scripts
 
 The following are manual steps to install packages that you can refer to understand what packages are actually installed.
 
+## Host Setting
+
+### Enable Cgroup Raspberry Pi
+
+```bash
+### Add cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1
+root@ubuntu:~# cat /boot/firmware/cmdline.txt
+net.ifnames=0 dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=LABEL=writable rootfstype=ext4 elevator=deadline rootwait fixrtc cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1
+
+root@ubuntu:~# reboot
+```
+
+### Load VxLAN kernel module on Raspberry Pi
+
+**see https://github.com/fujitatomoya/ros_k8s/issues/21, this operation is only required Raspi4 Ubuntu 21.10 or later.**
+
+```bash
+root@ubuntu:~# apt install -y linux-modules-extra-raspi
+root@ubuntu:~# reboot
+```
+
 ## Docker / Containerd
 
 **Containerd v1.6.0 (Required for Kubernetes v1.26 or later)**
