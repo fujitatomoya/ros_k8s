@@ -182,7 +182,7 @@ Here it describes install / uninstall CNI plugins via `kubectl`, CNI plugins are
 
 ```bash
 ### Install
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/coreos/flannel/raw/master/Documentation/kube-flannel.yml
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 namespace/kube-flannel created
 clusterrole.rbac.authorization.k8s.io/flannel created
 clusterrolebinding.rbac.authorization.k8s.io/flannel created
@@ -191,7 +191,7 @@ configmap/kube-flannel-cfg created
 daemonset.apps/kube-flannel-ds created
 
 ### Uninstall
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/coreos/flannel/raw/master/Documentation/kube-flannel.yml
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 ```
 
 - [WeaveNet](https://github.com/weaveworks/weave)
