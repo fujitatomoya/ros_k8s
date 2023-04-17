@@ -127,6 +127,15 @@ net.ifnames=0 dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=LABE
 root@ubuntu:~# reboot
 ```
 
+### Load VxLAN kernel module on Raspberry Pi
+
+**see https://github.com/fujitatomoya/ros_k8s/issues/21, this operation is only required Raspi4 Ubuntu 21.10 or later.**
+
+```bash
+root@ubuntu:~# apt install -y linux-modules-extra-raspi
+root@ubuntu:~# reboot
+```
+
 ### Join the cluster
 
 We need to do this procedure for all worker nodes to join the cluster system.
