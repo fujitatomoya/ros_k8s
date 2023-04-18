@@ -44,13 +44,14 @@ CRI v1alpha2 removed - kubelet will not register the node if the container runti
 
 ```bash
 apt remove -y containerd docker.io
-apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common vim
+apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common gnupg2
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 add-apt-repository -y "deb [arch=$(dpkg-architecture -q DEB_BUILD_ARCH)] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 apt update -y
 apt install -y docker-ce docker-ce-cli containerd.io
 mkdir -p /etc/containerd
 containerd config default | tee /etc/containerd/config.toml
+sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
 systemctl restart containerd
 systemctl enable containerd
 systemctl restart docker
