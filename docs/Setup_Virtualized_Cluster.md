@@ -34,6 +34,20 @@ tomoyafujita@~ >kind version
 kind v0.16.0 go1.19.5 linux/amd64
 ```
 
+## CNI plugins
+
+KIND node docker image does not contain some CNI plugin binaries under `/opt/cni/bin`, this is because KIND provides default network interface which is called `kindnet`.
+User can disable default `kindnet` but using specific CNI plugin such as flannel requires other CNI plugins under the `/opt/cni/bin`.
+The following operation to build the all CNI plugins in the host system to bind the docker container which is actually KIND node instance.
+
+```bash
+git clone https://github.com/containernetworking/plugins.git
+cd plugins
+export OPT_CNI_BIN_PATH=$(realpath -s bin)
+cd <ros_k8s>/yaml
+sed 's/OPT_CNI_BIN_PATH/${OPT_CNI_BIN_PATH}/' kind-multiple-node.yaml.template | envsubst > kind-multiple-node.yaml
+```
+
 ## Single node cluster setup
 
 - Start kind cluster
