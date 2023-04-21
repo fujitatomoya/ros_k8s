@@ -13,5 +13,5 @@ nodes:
     containerPath: /opt/cni/bin
 #- role: worker
 #  extraMounts:
-#  - hostPath: $OPT_CNI_BIN_PATH
+#  - hostPath: OPT_CNI_BIN_PATH
 #    containerPath: /opt/cni/bin
