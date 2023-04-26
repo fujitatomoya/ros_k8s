@@ -54,6 +54,8 @@ This environment is very much useful to try or test your container images or ser
 - [ROS 2 Deployment Demonstration](./docs/ROS2_Deployment_Demonstration.md)
 - [ROS 2 Deployment Intermediate](./docs/ROS2_Deployment_Intermediate.md)
 
+[![Watch the video](https://img.youtube.com/vi/Amxsy5A2NWE/maxresdefault.jpg)](https://www.youtube.com/watch?v=Amxsy5A2NWE)
+
 ## Reference
 
 - [kubernetes official documentation](https://kubernetes.io/docs/home/)
