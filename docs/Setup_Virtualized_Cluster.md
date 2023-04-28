@@ -43,6 +43,7 @@ The following operation to build the all CNI plugins in the host system to bind 
 ```bash
 git clone https://github.com/containernetworking/plugins.git
 cd plugins
+./build_linux.sh
 export OPT_CNI_BIN_PATH=$(realpath -s bin)
 cd <ros_k8s>/yaml
 sed 's/OPT_CNI_BIN_PATH/${OPT_CNI_BIN_PATH}/' kind-multiple-node.yaml.template | envsubst > kind-multiple-node.yaml
