@@ -1,8 +1,8 @@
 # Build:
-#  docker build --rm -f Dockerfile.rolling -t tomoyafujita/ros-rolling .
+#  docker build --rm -f Dockerfile.rolling -t <user_name>/ros-rolling .
 #
 # Usage:
-#  docker pull tomoyafujita/ros-rolling
+#  docker pull <user_name>/ros-rolling
 
 FROM ros:rolling
 ENV ROS_DISTRO=rolling
