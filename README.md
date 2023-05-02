@@ -1,3 +1,5 @@
+[![build-docker-images](https://github.com/fujitatomoya/ros_k8s/actions/workflows/build-docker-images.yml/badge.svg)](https://github.com/fujitatomoya/ros_k8s/actions/workflows/build-docker-images.yml)
+
 # ROS Kubernetes
 
 ## Abstract
