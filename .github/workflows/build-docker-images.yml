@@ -1,0 +1,44 @@
+# This is workflow to build docker images
+name: build-docker-images
+
+on:
+  push:
+  pull_request:
+    branches: [ "master" ]
+    # Only kick workflow if docker files are changed
+    paths:
+      # Currently just files right below docker folder, probably /** could be more resilient
+      - 'docker/*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  noetic:
+
+    name: build-noetic-${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04]
+
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v3
+    - name: Build ROS Noetic docker images
+      run: docker build --rm -f docker/Dockerfile.noetic -t workflows/ros-noetic .
+
+  rolling:
+
+    name: build-rolling-${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04]
+
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v3
+    - name: Build ROS Rolling docker images
+      run: docker build --rm -f docker/Dockerfile.rolling -t workflows/ros-rolling .
