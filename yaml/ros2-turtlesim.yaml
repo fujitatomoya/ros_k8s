@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-turtlesim-gui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-turtlesim-gui
+  template:
+    metadata:
+      labels:
+        app: ros2-turtlesim-gui
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run turtlesim turtlesim_node"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-turtlesim-gui
+        ### mounting host file to container
+        volumeMounts:
+        - mountPath: /tmp/.X11-unix
+          name: xserver
+        ### bind host environment variable to container
+        env:
+          - name: DISPLAY
+            value: ":1" # can this be host variable instead?
+      ### select the node with GUI for this deployment
+      nodeSelector:
+        nodetype: edgeserver
+      ### bind the host xserver unix to the container
+      volumes:
+      - name: xserver
+        hostPath:
+          path: /tmp/.X11-unix
+          type: Directory # host should have this always
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rqt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rqt
+  template:
+    metadata:
+      labels:
+        app: rqt
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && rqt"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: rqt
+        ### mounting host file to container
+        volumeMounts:
+        - mountPath: /tmp/.X11-unix
+          name: xserver
+        ### bind host environment variable to container
+        env:
+          - name: DISPLAY
+            value: ":1" # can this be host variable instead?
+      ### select the node with GUI for this deployment
+      nodeSelector:
+        nodetype: edgeserver
+      ### bind the host xserver unix to the container
+      volumes:
+      - name: xserver
+        hostPath:
+          path: /tmp/.X11-unix
+          type: Directory # host should have this always
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-teleop-key
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-teleop-key
+  template:
+    metadata:
+      labels:
+        app: ros2-teleop-key
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run turtlesim turtle_teleop_key"]
+        args: ["/bin/bash"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-teleop-key
+      ### select the node w/o GUI for this deployment
+      nodeSelector:
+        nodetype: edgedevice
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
