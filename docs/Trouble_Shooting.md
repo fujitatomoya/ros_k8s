@@ -2,6 +2,42 @@
 
 ## Kubernetes
 
+### How to check `kubelet` journal log
+
+Sometimes we need to check the `kubelet` journal log to debug why application pods are failing.
+
+The following is the example that weavenet fails to initialize.
+In this case, application pods are not instantiated yet, that is said we are not able to see any log via `kubectl describe pods xxx`.
+
+```bash
+root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A -w
+NAMESPACE              NAME                                                            READY   STATUS              RESTARTS      AGE
+kube-system            coredns-565d847f94-d9r7g                                        1/1     Running             0             18m
+kube-system            coredns-565d847f94-zbpgd                                        1/1     Running             0             18m
+kube-system            etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running             34            18m
+kube-system            kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0             18m
+kube-system            kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running             0             18m
+kube-system            kube-proxy-2stdt                                                1/1     Running             0             18m
+kube-system            kube-proxy-tk479                                                1/1     Running             0             44s
+kube-system            kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0             18m
+kube-system            weave-net-54g6h                                                 1/2     Error               0             44s
+kube-system            weave-net-bjjf8                                                 2/2     Running             1 (17m ago)   17m
+kubernetes-dashboard   dashboard-metrics-scraper-64bcc67c9c-hgjsm                      0/1     ContainerCreating   0             14m
+kubernetes-dashboard   kubernetes-dashboard-5c8bd6b59-zjjph                            0/1     ContainerCreating   0             14m
+kube-system            weave-net-54g6h                                                 0/2     Error               1 (14s ago)   44s
+kube-system            weave-net-54g6h                                                 1/2     Error               2 (7s ago)    46s
+kube-system            weave-net-54g6h                                                 0/2     CrashLoopBackOff    2 (4s ago)    47s
+kube-system            weave-net-54g6h                                                 0/2     CrashLoopBackOff    2 (3s ago)    48s
+...<snip>
+```
+
+Against this situation, we should check why container runtime `kubelet` fails to start the pods.
+Be advised that the following command must be issued on the physical host that `kubelet` is running.
+
+```bash
+root@ubuntu:~# journalctl -e -u kubelet
+```
+
 ### coredns pods does not become `Ready`
 
 - coredns stays in `Pending` state.
