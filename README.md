@@ -58,6 +58,10 @@ This environment is very much useful to try or test your container images or ser
 
 [![Watch the video](https://img.youtube.com/vi/Amxsy5A2NWE/maxresdefault.jpg)](https://www.youtube.com/watch?v=Amxsy5A2NWE)
 
+## Slides
+
+- [ROS with Kubernetes](https://www.slideshare.net/FujitaTomoya/rostscrosk8s20230309pdf)
+
 ## Reference
 
 - [kubernetes official documentation](https://kubernetes.io/docs/home/)
