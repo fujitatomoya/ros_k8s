@@ -1,15 +1,15 @@
 [![build-docker-images](https://github.com/fujitatomoya/ros_k8s/actions/workflows/build-docker-images.yml/badge.svg)](https://github.com/fujitatomoya/ros_k8s/actions/workflows/build-docker-images.yml)
 
-# ROS Kubernetes
+# ROS Kubernetes / KubeEdge
 
 ## Abstract
 
-This repository provides tutorials how to use ROS and ROS 2 with Kubernetes Cluster System.
+This repository provides tutorials how to use ROS and ROS 2 with Kubernetes and KubeEdge Cluster System.
 User might need to have knowledge about Kubernetes to understand what is really going on the cluster system.
 
 ## Motivation
 
-The primary goal for this repository is that everyone can try ROS and ROS 2 with Kubernetes Cluster.
+The primary goal for this repository is that everyone can try ROS and ROS 2 with Kubernetes and KubeEdge Cluster.
 Using container images and container orchestration allows application developer to be agnostic from system platform but only application logic.
 ROS and ROS 2 provides good isolation between nodes, so that we can take the most advantage of application runtime framework and container orchestration.
 
@@ -51,6 +51,7 @@ This environment is very much useful to try or test your container images or ser
 - [Install Kubernetes Packages](./docs/Install_Kubernetes_Packages.md)
 - [Build ROS / ROS 2 Full Docker Images](./docs/Build_Docker_Images.md)
 - [Setup Kuberenetes Cluster](./docs/Setup_Kubernetes_Cluster.md)
+- [Setup KubeEdge Cloud/Edge Node](./docs/Setup_KubeEdge.md)
 - [Setup Virtualized Kuberenetes Cluster](./docs/Setup_Virtualized_Cluster.md)
 - [ROS Deployment Demonstration](./docs/ROS_Deployment_Demonstration.md)
 - [ROS 2 Deployment Demonstration](./docs/ROS2_Deployment_Demonstration.md)
@@ -64,7 +65,8 @@ This environment is very much useful to try or test your container images or ser
 
 ## Reference
 
-- [kubernetes official documentation](https://kubernetes.io/docs/home/)
+- [Kubernetes Official Documentation](https://kubernetes.io/docs/home/)
+- [KubeEdge Official Documentation](https://kubeedge.io/docs/welcome/getting-started)
 - [Kubernetes IN Docker](https://kind.sigs.k8s.io/)
 - [ROS Noetic](http://wiki.ros.org/noetic)
 - [ROS Rolling](https://docs.ros.org/en/rolling/)
