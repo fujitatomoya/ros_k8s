@@ -55,7 +55,7 @@ spec:
         tty: true
         name: ros2-listener-1
       nodeSelector:
-        kubernetes.io/hostname: tomoyafujita-hp-compaq-elite-8300-sff
+        kubernetes.io/hostname: tomoyafujita
       hostNetwork: true
       tolerations:
       - key: node-role.kubernetes.io/master

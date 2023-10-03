@@ -43,10 +43,13 @@ In other words, Kubernetes API server must be running before KubeEdge installati
 see [Setup Kubernetes API Server](./Setup_Kubernetes_Cluster.md#setup-kubernetes-api-server) and [Access API-server](./Setup_Kubernetes_Cluster.md#access-api-server).
 
 
-**<span style="color: red;">CAUTION: MAYBE NO NEED</span>**
-
 In Kubernetes workloads, it requires one of CNI implementation running to set up the cluster.
 see [Deploy CNI Plugin](https://github.com/fujitatomoya/ros_k8s/blob/master/docs/Setup_Kubernetes_Cluster.md#deploy-cni-plugin) to start the CNI for Kubernetes. (this CNI can only be used by Kubernetes worker nodes but KubeEdge.)
+
+**<span style="color: red;">TODO: CNI needs to be uninstalled</span>**
+
+This is only required to bring the Kubenretes API-server running, because we are going to deploy cloudcore to the same physical node with Kubernetes API-server.
+Instead of having CNI deployed to bring the Kubernetes API-server up and runnig, we are not able to deploy cloudcore to the node since we cannot deploy the containers to any `NotReady` nodes.
 
 ## Setup KubeEdge
 
