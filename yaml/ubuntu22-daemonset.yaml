@@ -18,6 +18,7 @@ spec:
         command: ["/bin/bash", "-c"]
         args: ["sleep 3600"]
         imagePullPolicy: IfNotPresent
+      #hostNetwork: true
       tolerations:
       - key: node-role.kubernetes.io/master
         operator: Exists
