@@ -18,9 +18,9 @@ Sony R&D US Laboratory
 
 ---
 
-<!---
-# TODO: Add QR code for this slide here.
---->
+# [Slides are available](https://github.com/fujitatomoya/ros_k8s/tree/master/presentation)
+
+![bg right:50% 50%](./images/qr_code_to_here.png)
 
 ---
 
