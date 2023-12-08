@@ -59,9 +59,10 @@ This environment is very much useful to try or test your container images or ser
 
 [![Watch the video](https://img.youtube.com/vi/Amxsy5A2NWE/maxresdefault.jpg)](https://www.youtube.com/watch?v=Amxsy5A2NWE)
 
-## Slides
+## Slides / Talks
 
-- [ROS with Kubernetes](https://www.slideshare.net/FujitaTomoya/rostscrosk8s20230309pdf)
+- [ROS with Kubernetes Introduction in ROS TSC Meeting](https://www.slideshare.net/FujitaTomoya/rostscrosk8s20230309pdf)
+- [ROSCon 2023 ROS / ROS 2 with Kubernetes and KubeEdge](https://roscon.ros.org/2023/talks/ROS_with_KubernetesKubeEdge.pdf) / [Talk](https://vimeo.com/879001688/33b2495a49)
 
 ## Reference
 
