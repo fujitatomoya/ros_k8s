@@ -112,7 +112,7 @@ we can also see [Kind Advanced Tutorial](https://kind.sigs.k8s.io/docs/user/quic
 
 - Start kind cluster
 
-using [KIND multiple node description](../yaml/kind-multiple-node.yaml), kind can creates the virtual cluster with 3 virtual nodes as following.
+using [KIND multiple node description template](../yaml/kind-multiple-node.yaml.template), kind can creates the virtual cluster with 3 virtual nodes as following.
 
 ```bash
 tomoyafujita@~/ros_k8s/yaml >kind create cluster --config=kind-multiple-node.yaml

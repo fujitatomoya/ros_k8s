@@ -14,7 +14,7 @@ spec:
       args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /fastdds_chatter_$ROS_DOMAIN_ID std_msgs/String \"data: Hello, I am in the room $ROS_DOMAIN_ID\""]
       imagePullPolicy: IfNotPresent
       tty: true
-  hostNetwork: true
+  #hostNetwork: true
   nodeSelector:
     nodetype: edgeserver
   tolerations:
@@ -41,10 +41,10 @@ spec:
       envFrom:
         - configMapRef:
             name: fastdds-config-domain-5
-      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo std_msgs/String /fastdds_chatter_$ROS_DOMAIN_ID"]
+      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /fastdds_chatter_$ROS_DOMAIN_ID"]
       imagePullPolicy: IfNotPresent
       tty: true
-  hostNetwork: true
+  #hostNetwork: true
   nodeSelector:
     nodetype: edgedevice
   tolerations:
@@ -74,7 +74,7 @@ spec:
       args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic pub /fastdds_chatter_$ROS_DOMAIN_ID std_msgs/String \"data: Hello, I am in the room $ROS_DOMAIN_ID\""]
       imagePullPolicy: IfNotPresent
       tty: true
-  hostNetwork: true
+  #hostNetwork: true
   nodeSelector:
     nodetype: edgedevice
   tolerations:
@@ -101,10 +101,10 @@ spec:
       envFrom:
         - configMapRef:
             name: fastdds-config-domain-10
-      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo std_msgs/String /fastdds_chatter_$ROS_DOMAIN_ID"]
+      args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /fastdds_chatter_$ROS_DOMAIN_ID"]
       imagePullPolicy: IfNotPresent
       tty: true
-  hostNetwork: true
+  #hostNetwork: true
   nodeSelector:
     nodetype: edgeserver
   tolerations:
