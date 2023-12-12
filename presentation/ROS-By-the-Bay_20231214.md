@@ -191,6 +191,7 @@ Sony R&D US Laboratory
 #  > kubectl label nodes kind-worker nodetype=worker
 #  > kubectl get nodes --show-labels
 #  > kubectl apply -f ros1-multinode.yaml
+#  > kubectl delete -f ros1-multinode.yaml
 --->
 
 ---
