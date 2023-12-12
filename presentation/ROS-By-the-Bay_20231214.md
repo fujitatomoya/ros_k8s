@@ -29,14 +29,14 @@ Sony R&D US Laboratory
 - ROSCon 2023 ROS with Kubernetes [Talk](https://vimeo.com/879001688/33b2495a49) / [Slides](https://roscon.ros.org/2023/talks/ROS_with_KubernetesKubeEdge.pdf)
 - Community Meeting
   - [ROS Deployment Meeting](https://discourse.ros.org/t/ros-deployment-meeting-1/34684)
-  - [Cian Donovan](https://www.linkedin.com/in/cian-donovan-ba40a197/) : [ROS Deployment Podman / Systemd](https://github.com/ciandonovan/ros_deployment_talk/blob/master/ros_deployment.pdf)
+  - ***[Cian Donovan](https://www.linkedin.com/in/cian-donovan-ba40a197/)*** : ***[containerised userspace "drivers" using udev/systemd/podman](https://github.com/ciandonovan/ros_deployment_talk/blob/master/ros_deployment.pdf)***
   - Stay tuned for next meeting?
 
 ---
 
 # Background / Problems
 
-- Broad use cases (factory, logistics, entertainment, rescue, car, done...)
+- Broad use cases (factory, logistics, entertainment, rescue, car, drone...)
 - ROS and ROS 2 Distributed and Connected System.
 - Collaborative and Orchestrated Application.
 - AI/ML Ops Application lifecycle
@@ -84,7 +84,7 @@ Sony R&D US Laboratory
 
 - Application Deployment and Orchestration.
 - Device Capability and Label Control.
-- Auto- Scaling and Healing.
+- Auto-Scaling and Healing.
 - Roll Up/Down, Canary Test.
 - Role Based Access Control.
 - Device-Plugin / Container Device Interfaces.
