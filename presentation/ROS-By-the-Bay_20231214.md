@@ -187,8 +187,8 @@ Sony R&D US Laboratory
 <!---
 # Demo Commands:
 #  > kubectl get nodes --show-labels
-#  > kubectl label nodes kind-control-plane nodetype=master
-#  > kubectl label nodes kind-worker nodetype=worker
+#  > kubectl label --overwrite nodes kind-control-plane nodetype=master
+#  > kubectl label --overwrite nodes kind-worker nodetype=worker
 #  > kubectl get nodes --show-labels
 #  > kubectl apply -f ros1-multinode.yaml
 #  > kubectl delete -f ros1-multinode.yaml
@@ -212,7 +212,7 @@ Sony R&D US Laboratory
 <!---
 # Demo Commands:
 #  > kubectl label --overwrite nodes kind-control-plane nodetype=edgeserver
-#  > kubectl label --overwrite  nodes kind-worker nodetype=edgedevice
+#  > kubectl label --overwrite nodes kind-worker nodetype=edgedevice
 #  > kubectl get nodes --show-labels
 #  > kubectl apply -f ros2-config.yaml
 #  > kubectl apply -f ros2-domain-configmap.yaml
