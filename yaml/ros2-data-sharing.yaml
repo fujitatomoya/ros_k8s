@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ros2-data-sharing
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: ros2-data-sharing
+  template:
+    metadata:
+      labels:
+        app: ros2-data-sharing
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp talker_loaned_message"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-talker-loaned-msg
+        volumeMounts:
+          - name: devshm
+            mountPath: /dev/shm
+        env:
+          # not mandatory setting for publisher, but just in case
+          - name: ROS_DISABLE_LOANED_MESSAGES
+            value: "0"
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp listener"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-1
+        volumeMounts:
+          - name: devshm
+            mountPath: /dev/shm
+        env:
+          # this is required for subscription, see more details for https://github.com/ros2/rcl/pull/1110
+          - name: ROS_DISABLE_LOANED_MESSAGES
+            value: "0"
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp listener"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-listener-2
+        volumeMounts:
+          - name: devshm
+            mountPath: /dev/shm
+        env:
+          # this is required for subscription, see more details for https://github.com/ros2/rcl/pull/1110
+          - name: ROS_DISABLE_LOANED_MESSAGES
+            value: "0"
+      # binding host /dev/shm POSIX shared memory file system could be security risk,
+      #volumes:
+      #  - name: devshm
+      #    hostPath:
+      #      path: /dev/shm
+      # instead, we can bind the same tmpfs for /dev/shm only for this pods.
+      volumes:
+        - name: devshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi
+      #hostNetwork: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
