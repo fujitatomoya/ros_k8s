@@ -73,3 +73,33 @@ Use G|B|V|C|D|E|R|T keys to rotate to absolute orientations. 'F' to cancel a rot
 ```
 
 <img src="./../images/ros2_turtlesim_output.png" width="800">
+
+### ROS 2 Zero Copy Data Sharing
+
+ROS 2 provides [LoanedMessage](https://design.ros2.org/articles/zero_copy.html) RMW interface to allow user application to borrow the memory from the underlying middleware such as `rmw_fastrtps`.
+This enables user application to write and publish the message without any copy from user space to the middleware, which is really efficient for edge IoT devices.
+On the subscription side, underlying middleware automatically resolve if the memory can be loaned to subscription as well, that said subscription can also borrow the memory from the middleware to read the message without any extra copy.
+
+Besides, [rmw_fastrtps](https://github.com/ros2/rmw_fastrtps) RMW implementation middleware also supports zero copy data sharing feature in [Fast-DDS](https://github.com/eProsima/Fast-DDS).
+[Fast-DDS Data Sharing Delivery](https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/datasharing.html) can provide `True Zero Copy Data Sharing` to the ROS 2 user application without any copy.
+It uses POSIX shared memory file `/dev/shm` in default including [Shared Memory Transport](https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/shared_memory/shared_memory.html#shared-memory-transport), that said we need to bind `/dev/shm` tmpfs for each container in the same pod with same IP address assignment by Kubernetes.
+
+**see deployment description [ROS 2 Zero Copy Data Sharing](./../yaml/ros2-data-sharing.yaml)**
+
+***<span style="color: red"> [Fast-DDS](https://github.com/eProsima/Fast-DDS) can achieve zero copy feature without any daemon process running, that makes it easier to use this feature in the container. </span>***
+
+![ROS 2 Data Sharing](./../images/ros2_data_sharing.png)
+
+- Start DaemonSet
+
+```bash
+root@tomoyafujita:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl apply -f ros2-data-sharing.yaml
+daemonset.apps/ros2-data-sharing created
+```
+
+- Stop DaemonSet
+
+```bash
+root@tomoyafujita:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl delete -f ros2-data-sharing.yaml
+daemonset.apps "ros2-data-sharing" deleted
+```
