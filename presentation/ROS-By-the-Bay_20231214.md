@@ -7,7 +7,7 @@ _backgroundColor: white
 page_number: true
 ---
 
-# ROS / ROS 2 with Kubernetes (ROSCon Recap)
+# ROS / ROS 2 with Kubernetes
 
 Tomoya Fujita
 Sony R&D US Laboratory
