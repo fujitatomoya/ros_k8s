@@ -32,7 +32,7 @@ So all discovery protocol just works out of the box like physical network.
 - Start deployment and check availability.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-sample.yaml
+> kubectl apply -f ros2-sample.yaml
 deployment.apps/ros2-talker-1 created
 deployment.apps/ros2-talker-2 created
 deployment.apps/ros2-talker-3 created
@@ -40,7 +40,7 @@ deployment.apps/ros2-listener-1 created
 deployment.apps/ros2-listener-2 created
 deployment.apps/ros2-listener-3 created
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get pods -o wide
+> kubectl get pods -o wide
 NAME                               READY   STATUS    RESTARTS      AGE   IP          NODE                                    NOMINATED NODE   READINESS GATES
 ros2-listener-1-5c87cc854d-c4q78   1/1     Running   0             15m   10.32.0.4   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 ros2-listener-2-7c8f99f79-lg8dp    1/1     Running   1 (15m ago)   15m   10.44.0.5   ubuntu                                  <none>           <none>
@@ -53,7 +53,7 @@ ros2-talker-3-67c88d57d-z52l4      1/1     Running   0             15m   10.44.0
 - Jump in one of container to see the activity.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl exec --stdin --tty ros2-talker-1-54f5fb9dcd-2dlv6 -- /bin/bash
+> kubectl exec --stdin --tty ros2-talker-1-54f5fb9dcd-2dlv6 -- /bin/bash
 
 root@ros2-talker-1-54f5fb9dcd-2dlv6:/# source /opt/ros/rolling/setup.bash
 
@@ -111,11 +111,11 @@ This is useful to multiple users in single cluster system, it just appears to be
 -  Start deployment and check availability
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-localhost.yaml
+> kubectl apply -f ros2-localhost.yaml
 daemonset.apps/ros2-deamonset-1 created
 daemonset.apps/ros2-deamonset-2 created
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get pods -o wide
+> kubectl get pods -o wide
 NAME                     READY   STATUS    RESTARTS   AGE    IP           NODE                                    NOMINATED NODE   READINESS GATES
 ros2-deamonset-1-68bt2   2/2     Running   0          5m2s   10.44.0.3    ubuntu                                  <none>           <none>
 ros2-deamonset-1-zp2lq   2/2     Running   0          5m2s   10.32.0.11   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
@@ -127,7 +127,7 @@ ros2-deamonset-2-mf69r   2/2     Running   0          5m2s   10.32.0.12   tomoya
 
 ```bash
 root@ros2-talker-1-54f5fb9dcd-2dlv6:/# command terminated with exit code 137
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl exec --stdin --tty ros2-deamonset-1-68bt2 -- /bin/bash
+> kubectl exec --stdin --tty ros2-deamonset-1-68bt2 -- /bin/bash
 Defaulted container "ros2-talker-1" out of: ros2-talker-1, ros2-listener-1
 root@ros2-deamonset-1-68bt2:/# echo $ROS_LOCALHOST_ONLY
 1
@@ -159,10 +159,10 @@ In this example, we control fleet deployment based on nodetype labels.
 So we need to add labels for each cluster node as following.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=edgeserver
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=edgedevice
+> kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=edgeserver
+> kubectl label nodes ubuntu nodetype=edgedevice
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+> kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE   VERSION   LABELS
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   12m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
 ubuntu                                  Ready    <none>          12m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=edgedevice
@@ -171,13 +171,13 @@ ubuntu                                  Ready    <none>          12m   v1.25.5  
 - Create `ConfigMap` in cluster system
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-config.yaml 
+> kubectl apply -f ros2-config.yaml 
 configmap/fastdds-config-domain-5 created
 configmap/fastdds-config-domain-10 created
 configmap/cyclonedds-config created
 configmap/connext-config created
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get configmap
+> kubectl get configmap
 NAME                       DATA   AGE
 connext-config             2      6s
 cyclonedds-config          2      6s
@@ -191,13 +191,13 @@ kube-root-ca.crt           1      6h6m
 Now `ConfigMap` is ready to bind to container runtime as shared storage, we can start the application containers to bind those configuration data as environment variable as we like.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-domain-configmap.yaml
+> kubectl apply -f ros2-domain-configmap.yaml
 pod/ros2-fastdds-talker-id5 created
 pod/ros2-fastdds-listener-id5 created
 pod/ros2-fastdds-talker-id10 created
 pod/ros2-fastdds-listener-id10 created
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get pods -o wide
+> kubectl get pods -o wide
 NAME                         READY   STATUS    RESTARTS      AGE   IP              NODE                                    NOMINATED NODE   READINESS GATES
 ros2-fastdds-listener-id10   1/1     Running   2 (14s ago)   19s   192.168.1.248   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 ros2-fastdds-listener-id5    1/1     Running   0             19s   192.168.1.79    ubuntu                                  <none>           <none>
@@ -208,7 +208,7 @@ ros2-fastdds-talker-id5      1/1     Running   0             19s   192.168.1.248
 Now we can check if those containers running as expected,
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs ros2-fastdds-listener-id5 | head
+> kubectl logs ros2-fastdds-listener-id5 | head
 data: Hello, I am in the room 5
 ---
 data: Hello, I am in the room 5
@@ -220,7 +220,7 @@ data: Hello, I am in the room 5
 data: Hello, I am in the room 5
 ---
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs ros2-fastdds-listener-id10 | head
+> kubectl logs ros2-fastdds-listener-id10 | head
 data: Hello, I am in the room 10
 ---
 data: Hello, I am in the room 10
@@ -239,12 +239,12 @@ Since all containers bound to host network interface, we can see the ROS 2 commu
 We can use docker container to peek ROS 2 activity as following.
 
 ```bash
-tomoyafujita@~ >docker run -it --privileged --network host --name rolling-docker  tomoyafujita/ros:rolling
+> docker run -it --privileged --network host --name rolling-docker  tomoyafujita/ros:rolling
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# export ROS_DOMAIN_ID=5
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# source /opt/ros/rolling/setup.bash 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# ros2 topic list
+> export ROS_DOMAIN_ID=5
+> export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+> source /opt/ros/rolling/setup.bash 
+> ros2 topic list
 /fastdds_chatter_5
 /parameter_events
 /rosout

@@ -20,7 +20,7 @@ According to the [KubeEdge Kubernetes Compatibility](https://github.com/kubeedge
 For using KubeEdge, we need to downgrade Kubernetes to `v1.23.17` as following.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# apt install -y --allow-downgrades kubeadm=1.23.17-00 kubelet=1.23.17-00 kubectl=1.23.17-00
+> apt install -y --allow-downgrades kubeadm=1.23.17-00 kubelet=1.23.17-00 kubectl=1.23.17-00
 ```
 
 ## Container Network Interface (CNI)
@@ -58,28 +58,28 @@ Instead of having CNI deployed to bring the Kubernetes API-server up and runnig,
 - KubeEdge Cloud Core Node (amd64)
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-amd64.tar.gz
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# tar -zxvf keadm-v1.14.2-linux-amd64.tar.gz 
+> wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-amd64.tar.gz
+> tar -zxvf keadm-v1.14.2-linux-amd64.tar.gz
 keadm-v1.14.2-linux-amd64/
 keadm-v1.14.2-linux-amd64/version
 keadm-v1.14.2-linux-amd64/keadm/
 keadm-v1.14.2-linux-amd64/keadm/keadm
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# cp keadm-v1.14.2-linux-amd64/keadm//keadm /usr/local/bin/keadm
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# keadm version
+> cp keadm-v1.14.2-linux-amd64/keadm//keadm /usr/local/bin/keadm
+> keadm version
 version: version.Info{Major:"1", Minor:"14", GitVersion:"v1.14.2", GitCommit:"5036064115fad46232dee1c8ad5f1f84fde7984b", GitTreeState:"clean", BuildDate:"2023-09-04T01:54:06Z", GoVersion:"go1.17.13", Compiler:"gc", Platform:"linux/amd64"}
 ```
 
 - KubeEdge Edge Node (arm64)
 
 ```bash
-root@ubuntu:~/ros_k8s# wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-arm64.tar.gz
-root@ubuntu:~/ros_k8s# tar -zxvf keadm-v1.14.2-linux-arm64.tar.gz 
+> wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-arm64.tar.gz
+> tar -zxvf keadm-v1.14.2-linux-arm64.tar.gz 
 keadm-v1.14.2-linux-arm64/
 keadm-v1.14.2-linux-arm64/version
 keadm-v1.14.2-linux-arm64/keadm/
 keadm-v1.14.2-linux-arm64/keadm/keadm
-root@ubuntu:~/ros_k8s# cp keadm-v1.14.2-linux-arm64/keadm/keadm /usr/local/bin/keadm
-root@ubuntu:~/ros_k8s# keadm version
+> cp keadm-v1.14.2-linux-arm64/keadm/keadm /usr/local/bin/keadm
+> keadm version
 version: version.Info{Major:"1", Minor:"14", GitVersion:"v1.14.2", GitCommit:"5036064115fad46232dee1c8ad5f1f84fde7984b", GitTreeState:"clean", BuildDate:"2023-09-04T01:54:04Z", GoVersion:"go1.17.13", Compiler:"gc", Platform:"linux/arm64"}
 ```
 
@@ -88,7 +88,7 @@ version: version.Info{Major:"1", Minor:"14", GitVersion:"v1.14.2", GitCommit:"50
 - with the configuration, we will deploy the KubeEdge `cloudcore` to Kubernetes master node. Basically master node has the taints not to schedule the pods to keep the system resource for Kubenretes. So we need to remove that taint so that we can deploy the `cloudcore` pods to the mater node. (if this operation is not done, `keadm init` will fail with `Error: timed out waiting for the condition`)
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o json | jq '.items[].spec.taints'
+> kubectl get nodes -o json | jq '.items[].spec.taints'
 [
   {
     "effect": "NoSchedule",
@@ -96,17 +96,17 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o json | jq '.i
   }
 ]
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl taint nodes tomoyafujita-hp-compaq-elite-8300-sff node-role.kubernetes.io/master:NoSchedule-
+> kubectl taint nodes tomoyafujita-hp-compaq-elite-8300-sff node-role.kubernetes.io/master:NoSchedule-
 node/tomoyafujita-hp-compaq-elite-8300-sff untainted
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o json | jq '.items[].spec.taints'
+> kubectl get nodes -o json | jq '.items[].spec.taints'
 null
 ```
 
 - start KubeEdge `cloudcore`.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# keadm init --advertise-address=192.168.1.248 --profile version=v1.12.1
+> keadm init --advertise-address=192.168.1.248 --profile version=v1.12.1
 Kubernetes version verification passed, KubeEdge installation will start...
 CLOUDCORE started
 =========CHART DETAILS=======
@@ -116,7 +116,7 @@ NAMESPACE: kubeedge
 STATUS: deployed
 REVISION: 1
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get all -n kubeedge
+> kubectl get all -n kubeedge
 NAME                             READY   STATUS    RESTARTS   AGE
 pod/cloudcore-77b5dfdd57-btmlp   1/1     Running   0          24s
 
@@ -134,14 +134,14 @@ KubeEdge can be uninstalled via the following commands.
 - get security token from cloudcore.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# keadm gettoken
+> keadm gettoken
 40d9bb8bb2c3818728da3d46f1a78b58f4b9fba8665cc392ded4698d1eb5cab1.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQ4NDA5ODN9.niGZHHdR7s89K4-919fCNKEVTyudb8DtTmE9p5PFzKg
 ```
 
 - start KubeEdge `edgecore`
 
 ```bash
-root@ubuntu:~# keadm join --cloudcore-ipport=192.168.1.248:10000 --token=40d9bb8bb2c3818728da3d46f1a78b58f4b9fba8665cc392ded4698d1eb5cab1.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQ4NDA5ODN9.niGZHHdR7s89K4-919fCNKEVTyudb8DtTmE9p5PFzKg --kubeedge-version=v1.12.1 --runtimetype=docker --cgroupdriver systemd
+> keadm join --cloudcore-ipport=192.168.1.248:10000 --token=40d9bb8bb2c3818728da3d46f1a78b58f4b9fba8665cc392ded4698d1eb5cab1.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQ4NDA5ODN9.niGZHHdR7s89K4-919fCNKEVTyudb8DtTmE9p5PFzKg --kubeedge-version=v1.12.1 --runtimetype=docker --cgroupdriver systemd
 I0915 06:28:19.544584   10424 command.go:845] 1. Check KubeEdge edgecore process status
 I0915 06:28:19.578838   10424 command.go:845] 2. Check if the management directory is clean
 I0915 06:28:19.579238   10424 join.go:107] 3. Create the necessary directories
@@ -159,7 +159,7 @@ I0915 06:28:27.270836   10424 join.go:107] 9. Run EdgeCore daemon
 I0915 06:28:34.350843   10424 join.go:435]
 I0915 06:28:34.350933   10424 join.go:436] KubeEdge edgecore is running, For logs visit: journalctl -u edgecore.service -xe
 
-root@ubuntu:~# systemctl status edgecore
+> systemctl status edgecore
 ● edgecore.service
      Loaded: loaded (/etc/systemd/system/edgecore.service; enabled; vendor preset: enabled)
      Active: active (running) since Fri 2023-09-15 06:28:34 UTC; 1min 9s ago
@@ -175,7 +175,7 @@ root@ubuntu:~# systemctl status edgecore
 - check cluster nodes.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o wide
+> kubectl get nodes -o wide
 NAME                                    STATUS   ROLES                  AGE    VERSION                    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane,master   104m   v1.23.17                   192.168.1.248   <none>        Ubuntu 20.04.6 LTS   5.15.0-83-generic   docker://24.0.5
 ubuntu                                  Ready    agent,edge             97s    v1.22.6-kubeedge-v1.12.1   192.168.1.238   <none>        Ubuntu 22.04.3 LTS   5.15.0-1034-raspi   docker://24.0.5
@@ -184,11 +184,11 @@ ubuntu                                  Ready    agent,edge             97s    v
 ## KubeEdge Test Deployment
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl apply -f ros2-sample-hostnic.yaml
+> kubectl apply -f ros2-sample-hostnic.yaml
 deployment.apps/ros2-talker-1 created
 deployment.apps/ros2-listener-1 created
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl get pods -o wide
+> kubectl get pods -o wide
 NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                                    NOMINATED NODE   READINESS GATES
 ros2-listener-1-64c4c996b4-scm9k   1/1     Running   0          14m   192.168.1.248   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 ros2-talker-1-bdd899d8d-drt2f      1/1     Running   0          14m   192.168.1.238   ubuntu                                  <none>           <none>
@@ -197,11 +197,11 @@ ros2-talker-1-bdd899d8d-drt2f      1/1     Running   0          14m   192.168.1.
 ## Break Down KubeEdge
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# keadm reset --force
+> keadm reset --force
 I0915 00:26:18.977824  114454 util_unix.go:104] "Using this format as endpoint is deprecated, please consider using full url format." deprecatedFormat="" fullURLFormat="unix://"
 Failed to remove MQTT container: failed to new container runtime: unable to determine image API version: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial unix: missing address"
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# \rm -rf /etc/kubeedge/*
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubeadm reset --force
+> \rm -rf /etc/kubeedge/*
+> kubeadm reset --force
 [reset] Reading configuration from the cluster...
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# \rm -rf $HOME/.kube/config
+> \rm -rf $HOME/.kube/config
 ```

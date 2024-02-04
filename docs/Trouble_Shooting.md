@@ -10,7 +10,7 @@ The following is the example that weavenet fails to initialize.
 In this case, application pods are not instantiated yet, that is said we are not able to see any log via `kubectl describe pods xxx`.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A -w
+> kubectl get pods -A -w
 NAMESPACE              NAME                                                            READY   STATUS              RESTARTS      AGE
 kube-system            coredns-565d847f94-d9r7g                                        1/1     Running             0             18m
 kube-system            coredns-565d847f94-zbpgd                                        1/1     Running             0             18m
@@ -35,7 +35,7 @@ Against this situation, we should check why container runtime `kubelet` fails to
 Be advised that the following command must be issued on the physical host that `kubelet` is running.
 
 ```bash
-root@ubuntu:~# journalctl -e -u kubelet
+> journalctl -e -u kubelet
 ```
 
 ### coredns pods does not become `Ready`
@@ -43,7 +43,7 @@ root@ubuntu:~# journalctl -e -u kubelet
 - coredns stays in `Pending` state.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A
+> kubectl get pods -A
 NAMESPACE     NAME                                                            READY   STATUS    RESTARTS   AGE
 kube-system   coredns-565d847f94-jvwvq                                        0/1     Pending   0          42s
 kube-system   coredns-565d847f94-k99r6                                        0/1     Pending   0          42s
@@ -63,7 +63,7 @@ see [Deploy CNI Plugin](./Setup_Kubernetes_Cluster.md#deploy-cni-plugin).
 - coredns stays in `ContainerCreating`
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A
+> kubectl get pods -A
 NAMESPACE     NAME                                                            READY   STATUS              RESTARTS   AGE
 kube-system   coredns-565d847f94-7zlmq                                        0/1     ContainerCreating   0          50s
 kube-system   coredns-565d847f94-9rzsf                                        0/1     ContainerCreating   0          50s
@@ -91,5 +91,5 @@ If you see above error, probably cached CNI information is not successfully remo
 We need to reset the cluster and clear the files under `/etc/cni/net.d`.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# rm /etc/cni/net.d/*
+> rm /etc/cni/net.d/*
 ```

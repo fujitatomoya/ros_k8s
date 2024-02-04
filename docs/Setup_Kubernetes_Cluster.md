@@ -36,32 +36,32 @@ In this repository, we use [WeaveNet](https://github.com/weaveworks/weave) as CN
 
 ```bash
 ### Be super user access
-tomoyafujita@~/DVT >sudo su -
+> sudo su -
 
 ### Make sure that swap is diabled
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# swapoff -a
+>  swapoff -a
 
 ### Cgroup for docker is set into systemd
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# docker info | grep Cgroup
+> docker info | grep Cgroup
  Cgroup Driver: systemd
  Cgroup Version: 1
 
 ### Make sure kubeadm is installed to start the cluster
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubeadm version
+> kubeadm version
 kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitCommit:"804d6167111f6858541cef440ccc53887fbbc96a", GitTreeState:"clean", BuildDate:"2022-12-08T10:13:29Z", GoVersion:"go1.19.4", Compiler:"gc", Platform:"linux/amd64"}
 
 ### Set container runtime cgroup driver aligned with Kubernetes
 ### See https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cat /etc/docker/daemon.json
+> cat /etc/docker/daemon.json
 {
     "exec-opts": ["native.cgroupdriver=systemd"]
 }
 
 ### Restart docker systemd service
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# systemctl restart docker
+> systemctl restart docker
 
 ### Initialize master node, it might take a few minutes to complete
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubeadm init --pod-network-cidr=10.244.0.0/16
+> kubeadm init --pod-network-cidr=10.244.0.0/16
 I0116 15:51:52.208739    7616 version.go:256] remote version is much newer: v1.26.0; falling back to: stable-1.25
 [init] Using Kubernetes version: v1.25.5
 [preflight] Running pre-flight checks
@@ -96,15 +96,15 @@ kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
 Make sure that we can access Kubernetes API server w/o any problems.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# mkdir -p $HOME/.kube
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# chown $(id -u):$(id -g) $HOME/.kube/config
+> mkdir -p $HOME/.kube
+> cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+> chown $(id -u):$(id -g) $HOME/.kube/config
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o wide
+> kubectl get nodes -o wide
 NAME                                    STATUS     ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 tomoyafujita-hp-compaq-elite-8300-sff   NotReady   control-plane   51s   v1.25.5   192.168.1.248   <none>        Ubuntu 20.04.5 LTS   5.15.0-58-generic   containerd://1.5.9
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A
+> kubectl get pods -A
 NAMESPACE     NAME                                                            READY   STATUS    RESTARTS        AGE
 kube-system   coredns-565d847f94-qglk9                                        0/1     Pending   0               46s
 kube-system   coredns-565d847f94-qjprq                                        0/1     Pending   0               46s
@@ -122,22 +122,22 @@ kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/
 We need to do this procedure for all worker nodes to join the cluster system.
 
 ```bash
-root@ubuntu:~# swapoff -a
+> swapoff -a
 
-root@ubuntu:~# docker info | grep Cgroup
+> docker info | grep Cgroup
  Cgroup Driver: systemd
  Cgroup Version: 1
 
-root@ubuntu:~# kubeadm version
+> kubeadm version
 kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitCommit:"804d6167111f6858541cef440ccc53887fbbc96a", GitTreeState:"clean", BuildDate:"2022-12-08T10:13:29Z", GoVersion:"go1.19.4", Compiler:"gc", Platform:"linux/arm64"}
 
-root@ubuntu:~# cat /etc/docker/daemon.json
+> cat /etc/docker/daemon.json
 {
     "exec-opts": ["native.cgroupdriver=systemd"]
 }
 
-root@ubuntu:~# systemctl restart docker
-root@ubuntu:~# kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
+> systemctl restart docker
+> kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
 > --discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241
 [preflight] Running pre-flight checks
 [preflight] Reading configuration from the cluster...
@@ -157,7 +157,7 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 Check the node availability on master node.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes -o wide
+> kubectl get nodes -o wide
 NAME                                    STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   6m21s   v1.25.5   192.168.1.248   <none>        Ubuntu 20.04.5 LTS   5.15.0-58-generic   containerd://1.5.9
 ubuntu                                  Ready    <none>          14s     v1.25.5   192.168.1.79    <none>        Ubuntu 20.04.5 LTS   5.4.0-1078-raspi    containerd://1.5.9
@@ -172,7 +172,7 @@ Here it describes install / uninstall CNI plugins via `kubectl`, CNI plugins are
 
 ```bash
 ### Install
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+> kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 namespace/kube-flannel created
 clusterrole.rbac.authorization.k8s.io/flannel created
 clusterrolebinding.rbac.authorization.k8s.io/flannel created
@@ -181,7 +181,7 @@ configmap/kube-flannel-cfg created
 daemonset.apps/kube-flannel-ds created
 
 ### Uninstall
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+> kubectl delete -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 ```
 
 - [WeaveNet](https://github.com/weaveworks/weave)
@@ -190,9 +190,9 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
 
     ```bash
     ### Install
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
+    > kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
     ### Uninstall
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
+    > kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
     ```
 
     Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
@@ -200,9 +200,9 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
 
     ```bash
     ### Install
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+    > kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
     ### Uninstall
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+    > kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
     ```
 
   - Security Encryption
@@ -211,11 +211,11 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     WeaveNet uses fast datapath via Kernel OpenVswitch, and IPsec ESP can be enabled statically before any application pods are created.
 
     ```bash
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# curl -L git.io/weave -o /usr/local/bin/weave
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# chmod a+x /usr/local/bin/weave
+    > curl -L git.io/weave -o /usr/local/bin/weave
+    > chmod a+x /usr/local/bin/weave
 
     ### Weave CLI installs docker container to connect weavenet daemon to execute the command
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# weave status
+    > weave status
 
             Version: 2.8.1 (failed to check latest version - see logs; next check at 2023/03/05 01:37:01)
 
@@ -239,12 +239,12 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     Adding environmental variable with your own password can enable WeaveNet encryption, the following shows how to do so via Kubernetes Secret. (which can be bound to application pods at initialization.)
 
     ```bash
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# openssl rand -hex 128 > weave-passwd
+    > openssl rand -hex 128 > weave-passwd
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl create secret -n kube-system generic weave-passwd --from-file=./weave-passwd
+    > kubectl create secret -n kube-system generic weave-passwd --from-file=./weave-passwd
     secret/weave-passwd created
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl describe secret -n kube-system weave-passwd
+    > kubectl describe secret -n kube-system weave-passwd
     Name:         weave-passwd
     Namespace:    kube-system
     Labels:       <none>
@@ -256,7 +256,7 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     ====
     weave-passwd:  257 bytes
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl edit --namespace=kube-system daemonset weave-net
+    > kubectl edit --namespace=kube-system daemonset weave-net
     daemonset.apps/weave-net edited
 
     ### add the following under `spec.template.spec.containers`
@@ -267,7 +267,7 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
           name: weave-passwd
           key: weave-passwd
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# weave status | grep Encryption
+    > weave status | grep Encryption
         Encryption: enabled
     ```
 
@@ -281,10 +281,10 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     The Cilium CLI can be used to install Cilium, inspect the state of a Cilium installation, and enable/disable various features.
 
     ```bash
-    tomoyafujita@~/DVT >sudo su -
+    > sudo su -
     [sudo] password for tomoyafujita:
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cd <repo>/scripts
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# ./install_cilium_cli.sh
+    > cd <repo>/scripts
+    > ./install_cilium_cli.sh
     Cilium CLI version is v0.12.12
     CPU architecture is amd64
       % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -303,13 +303,13 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
   - Install Cilium CNI to the Kubernetes Cluster
 
     ```bash
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium version
+    > cilium version
     cilium-cli: v0.12.12 compiled with go1.19.4 on linux/amd64
     cilium image (default): v1.12.5
     cilium image (stable): v1.12.5
     cilium image (running): unknown. Unable to obtain cilium version, no cilium pods found in namespace "kube-system"
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium install
+    > cilium install
     ℹ️  Using Cilium version 1.12.5
     🔮 Auto-detected cluster name: kubernetes
     🔮 Auto-detected datapath mode: tunnel
@@ -328,7 +328,7 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     ♻️  Restarted unmanaged pod kube-system/coredns-565d847f94-sn4ht
     ✅ Cilium was successfully installed! Run 'cilium status' to view installation health
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium status
+    > cilium status
         /¯¯\
     /¯¯\__/¯¯\    Cilium:         OK
     \__/¯¯\__/    Operator:       OK
@@ -344,7 +344,7 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     Image versions    cilium             quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5: 2
                       cilium-operator    quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e: 1
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -A | grep cilium
+    > kubectl get pods -A | grep cilium
     kube-system   cilium-operator-74b8595d7b-v6j42                                1/1     Running   0          3m43s
     kube-system   cilium-pbntp                                                    1/1     Running   0          3m43s
     kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
@@ -358,18 +358,18 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
 
     ```bash
     ### If cilium is already deployed, uninstall from cluster system
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium uninstall
+    > cilium uninstall
 
     ### Create Kubernetes Secret that is used for encryption
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# PSK=($(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64))
+    > PSK=($(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64))
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# echo $PSK
+    > echo $PSK
     47b57a0241e4c5df0a196ccfbcc7ee1aff204100
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3 rfc4106(gcm(aes)) $PSK 128"
+    > kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3 rfc4106(gcm(aes)) $PSK 128"
     secret/cilium-ipsec-keys created
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl describe secret -n kube-system cilium-ipsec-keys
+    > kubectl describe secret -n kube-system cilium-ipsec-keys
     Name:         cilium-ipsec-keys
     Namespace:    kube-system
     Labels:       <none>
@@ -381,15 +381,15 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl delete -f https://raw.gith
     ====
     keys:  64 bytes
 
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# SECRET="$(kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data}' -n kube-system | jq -r ".keys")"
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# echo $SECRET | base64 --decode
+    > SECRET="$(kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data}' -n kube-system | jq -r ".keys")"
+    > echo $SECRET | base64 --decode
     3 rfc4106(gcm(aes)) 47b57a0241e4c5df0a196ccfbcc7ee1aff204100 128
 
     ### Start deployment with enabling encryption
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium install --encryption ipsec
+    > cilium install --encryption ipsec
 
     ### Check IPsec is enabled
-    root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# cilium config view | grep ipsec
+    > cilium config view | grep ipsec
     enable-ipsec                               true
     ipsec-key-file                             /etc/ipsec/keys
     ```
@@ -403,7 +403,7 @@ See details for [Deploy and Access the Kubernetes Dashboard](https://kubernetes.
 
 ```bash
 ### Start dashboard
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+> kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
 namespace/kubernetes-dashboard created
 serviceaccount/kubernetes-dashboard created
 service/kubernetes-dashboard created
@@ -420,27 +420,27 @@ service/dashboard-metrics-scraper created
 deployment.apps/dashboard-metrics-scraper created
 
 ### Check dashboard pods and service are running
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -n kubernetes-dashboard
+> kubectl get pods -n kubernetes-dashboard
 NAME                                         READY   STATUS    RESTARTS   AGE
 dashboard-metrics-scraper-64bcc67c9c-zmv7t   1/1     Running   0          55s
 kubernetes-dashboard-5c8bd6b59-ppmpz         1/1     Running   0          55s
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get service -n kubernetes-dashboard
+> kubectl get service -n kubernetes-dashboard
 NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
 dashboard-metrics-scraper   ClusterIP   10.111.141.248   <none>        8000/TCP   61s
 kubernetes-dashboard        ClusterIP   10.96.239.105    <none>        443/TCP    61s
 
 ### Generate token to bind ServiceAccount
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s/yaml# kubectl apply -f dashboard-adminuser.yaml
+> kubectl apply -f dashboard-adminuser.yaml
 serviceaccount/admin-user created
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s/yaml# kubectl apply -f dashboard-rolebind.yaml
+. kubectl apply -f dashboard-rolebind.yaml
 clusterrolebinding.rbac.authorization.k8s.io/admin-user created
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s/yaml# kubectl -n kubernetes-dashboard create token admin-user --duration=8760h
+> kubectl -n kubernetes-dashboard create token admin-user --duration=8760h
 eyJhbGciOiJSUzI1NiIsImtpZCI6ImVScUFkeS1oUkdJTkF3eGxMTkNfZ3Bxc3RjZndET3ZwNEJ2REJCbVAyU0EifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNjc2Njg3Nzg5LCJpYXQiOjE2NzY2ODQxODksImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJhZG1pbi11c2VyIiwidWlkIjoiMDA2NjhiOWQtYWUwNS00NDdmLWJkYjUtOGI4MGVjMTgzZTc1In19LCJuYmYiOjE2NzY2ODQxODksInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlcm5ldGVzLWRhc2hib2FyZDphZG1pbi11c2VyIn0.J19f30ptmJ_PIOmhf9hUMDUc-ajr6F7VSkUQyKaM10MIvXp99mO036kHnKQgJRj1P9K9IJwOTwHdikvrE2iupDLzwilIIbzDNzDhKTQzOgFYkwKL2xQlLv1pksA9UDm9eOJA3fXVhcJ22imyRSxh-IMB4jz7IVQVObaXoZGp04J3A0vzJoQPdPWfcJ1ezZvghlZsRrNkkuTrrH3Yek2yrB2keh6oBjWZtWG7zNHd8MXhO5K0NEP_lWWyTSDX2TI9gdgYHP12gUiD6t14gcbZCObRpV8-m3qtUTbMPR_3DBo-LwrGFL6pc-i6mysjZ8qq2ssD5sZRG4mcKuVoDsjVeg
 
 ### Copy the above token
 
 ### Start kube-proxy, this is required to proxy cluster network and host network.
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl proxy
+> kubectl proxy
 Starting to serve on 127.0.0.1:8001
 ```
 
