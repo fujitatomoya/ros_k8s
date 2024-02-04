@@ -3,7 +3,7 @@
 Based on `ros:noetic` (ROS 1) and `ros:rolling` (ROS 2), we will build full ROS / ROS 2 docker images and upload those images to [dockerhub](https://hub.docker.com/).
 The reason to build full docker images for ROS and ROS 2 is basic container images do not include useful samples or examples packages, docker images with full packages can be very useful for container application on Kubernetes cluster system.
 
-This build procedure basically needs to be done only once.
+To build and uploard all ROS container images, you can use [build_docker_images.sh](../scripts/build_docker_images.sh).
 
 ## Setup Prerequisite
 
@@ -15,7 +15,7 @@ We must have account [DockerHub](https://hub.docker.com/), if you do not have on
 Then, make sure [docker login](https://docs.docker.com/engine/reference/commandline/login/) works okay as following.
 
 ```bash
-tomoyafujita@~/DVT >docker login
+> docker login
 Authenticating with existing credentials...
 WARNING! Your password will be stored unencrypted in /home/tomoyafujita/.docker/config.json.
 Configure a credential helper to remove this warning. See
@@ -36,14 +36,14 @@ See https://github.com/docker/buildx#linux-packages to download the executable b
 
 ```bash
 
-tomoyafujita@~ >mkdir ~/.docker/cli-plugins
-tomoyafujita@~ >mv Downloads/buildx-v0.10.1.linux-amd64 ~/.docker/cli-plugins
-tomoyafujita@~ >chmod +x ~/.docker/cli-plugins/buildx-v0.10.1.linux-amd64
-tomoyafujita@~ >ls -lt ~/.docker/cli-plugins
+> mkdir ~/.docker/cli-plugins
+> mv Downloads/buildx-v0.10.1.linux-amd64 ~/.docker/cli-plugins
+> chmod +x ~/.docker/cli-plugins/buildx-v0.10.1.linux-amd64
+> ls -lt ~/.docker/cli-plugins
 total 48M
 -rwxrwxr-x 1 tomoyafujita tomoyafujita 47M Jan 26 22:30 buildx-v0.10.1.linux-amd64*
-tomoyafujita@~ >mv ~/.docker/cli-plugins/buildx-v0.10.1.linux-amd64 ~/.docker/cli-plugins/docker-buildx
-tomoyafujita@~ >docker buildx
+> mv ~/.docker/cli-plugins/buildx-v0.10.1.linux-amd64 ~/.docker/cli-plugins/docker-buildx
+> docker buildx
 
 Usage:  docker buildx [OPTIONS] COMMAND
 
@@ -78,7 +78,7 @@ The following operation needs to be done for each platform architecture, for exa
 - Make sure that we can pull docker ros:noetic image.
 
 ```bash
-tomoyafujita@~/DVT >docker pull ros:noetic
+> docker pull ros:noetic
 noetic: Pulling from library/ros
 Digest: sha256:ab5d0ba8771862f65925511a61f212c7623e8b020d05fd391611b6071e0e43c2
 Status: Image is up to date for ros:noetic
@@ -88,19 +88,19 @@ docker.io/library/ros:noetic
 - Build desktop image
 
 ```bash
-tomoyafujita@~/DVT/github.com/fujitatomoya >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT/github.com/fujitatomoya >export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
-tomoyafujita@~/DVT/github.com/fujitatomoya >echo $ARCH
+> export DOCKERHUB_USERNAME="tomoyafujita"
+> export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+> echo $ARCH
 amd64
-tomoyafujita@~/DVT/github.com/fujitatomoya >cd ros_k8s/docker/
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker build --rm -f Dockerfile.noetic -t $DOCKERHUB_USERNAME/ros:noetic-$ARCH .
+> cd ros_k8s/docker/
+> docker build --rm -f Dockerfile.noetic -t $DOCKERHUB_USERNAME/ros:noetic-$ARCH .
 ...<snip>
 ```
 
 - Upload desktop image
 
 ```bash
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHUB_USERNAME/ros:noetic-$ARCH
+> docker push $DOCKERHUB_USERNAME/ros:noetic-$ARCH
 ```
 
 - Create and push manifest
@@ -109,9 +109,9 @@ tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHU
   Here it describes how to support multiple architecture amd64 and arm64 platform.
 
 ```bash
-tomoyafujita@~/DVT >docker manifest create $DOCKERHUB_USERNAME/ros:noetic $DOCKERHUB_USERNAME/ros:noetic-amd64 --amend $DOCKERHUB_USERNAME/ros:noetic-arm64
-tomoyafujita@~/DVT >docker manifest inspect $DOCKERHUB_USERNAME/ros:noetic
-tomoyafujita@~/DVT >docker manifest push $DOCKERHUB_USERNAME/ros:noetic
+> docker manifest create $DOCKERHUB_USERNAME/ros:noetic $DOCKERHUB_USERNAME/ros:noetic-amd64 --amend $DOCKERHUB_USERNAME/ros:noetic-arm64
+> docker manifest inspect $DOCKERHUB_USERNAME/ros:noetic
+> docker manifest push $DOCKERHUB_USERNAME/ros:noetic
 ```
 
 - Pull desktop image
@@ -119,7 +119,7 @@ tomoyafujita@~/DVT >docker manifest push $DOCKERHUB_USERNAME/ros:noetic
   If multiple architecture images are successfully uploaded, the following pull command will download the appropriate architecture image based on your machine.
 
 ```bash
-tomoyafujita@~/DVT >docker pull $DOCKERHUB_USERNAME/ros:noetic
+> docker pull $DOCKERHUB_USERNAME/ros:noetic
 ```
 
 ## ROS Rolling
@@ -129,7 +129,7 @@ The following operation needs to be done for each platform architecture, for exa
 - Make sure that we can pull docker ros:rolling image.
 
 ```bash
-tomoyafujita@~/DVT >docker pull ros:rolling
+> docker pull ros:rolling
 noetic: Pulling from library/ros
 Digest: sha256:ab5d0ba8771862f65925511a61f212c7623e8b020d05fd391611b6071e0e43c2
 Status: Image is up to date for ros:noetic
@@ -139,19 +139,19 @@ docker.io/library/ros:noetic
 - Build desktop image
 
 ```bash
-tomoyafujita@~/DVT/github.com/fujitatomoya >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT/github.com/fujitatomoya >export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
-tomoyafujita@~/DVT/github.com/fujitatomoya >echo $ARCH
+> export DOCKERHUB_USERNAME="tomoyafujita"
+> export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+> echo $ARCH
 amd64
-tomoyafujita@~/DVT/github.com/fujitatomoya >cd ros_k8s/docker/
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker build --rm -f Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros:rolling-$ARCH .
+> cd ros_k8s/docker/
+> docker build --rm -f Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros:rolling-$ARCH .
 ...<snip>
 ```
 
 - Upload desktop image
 
 ```bash
-tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHUB_USERNAME/ros:rolling-$ARCH
+> docker push $DOCKERHUB_USERNAME/ros:rolling-$ARCH
 ```
 
 - Create and push manifest
@@ -160,9 +160,9 @@ tomoyafujita@~/DVT/github.com/fujitatomoya/ros_k8s/docker >docker push $DOCKERHU
   Here it describes how to support multiple architecture amd64 and arm64 platform.
 
 ```bash
-tomoyafujita@~/DVT >docker manifest create $DOCKERHUB_USERNAME/ros:rolling $DOCKERHUB_USERNAME/ros:rolling-amd64 --amend $DOCKERHUB_USERNAME/ros:rolling-arm64
-tomoyafujita@~/DVT >docker manifest inspect $DOCKERHUB_USERNAME/ros:rolling
-tomoyafujita@~/DVT >docker manifest push $DOCKERHUB_USERNAME/ros:rolling
+> docker manifest create $DOCKERHUB_USERNAME/ros:rolling $DOCKERHUB_USERNAME/ros:rolling-amd64 --amend $DOCKERHUB_USERNAME/ros:rolling-arm64
+> docker manifest inspect $DOCKERHUB_USERNAME/ros:rolling
+> docker manifest push $DOCKERHUB_USERNAME/ros:rolling
 ```
 
 - Pull desktop image
@@ -170,7 +170,7 @@ tomoyafujita@~/DVT >docker manifest push $DOCKERHUB_USERNAME/ros:rolling
   If multiple architecture images are successfully uploaded, the following pull command will download the appropriate architecture image based on your machine.
 
 ```bash
-tomoyafujita@~/DVT >docker pull $DOCKERHUB_USERNAME/ros:rolling
+> docker pull $DOCKERHUB_USERNAME/ros:rolling
 ```
 
 ## Verify Images
@@ -180,8 +180,8 @@ Before deploying container images via Kubernetes, it would be nice to check if t
 - ROS talker and listener
 
 ```bash
-tomoyafujita@~/DVT >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT >docker run -it --rm $DOCKERHUB_USERNAME/ros:noetic /bin/bash
+> export DOCKERHUB_USERNAME="tomoyafujita"
+> docker run -it --rm $DOCKERHUB_USERNAME/ros:noetic /bin/bash
 root@ffedcfd31e7c:/# source /opt/ros/noetic/setup.bash
 root@ffedcfd31e7c:/# roscore &
 ...<snip>
@@ -206,8 +206,8 @@ root@ffedcfd31e7c:/# rosrun roscpp_tutorials talker & rosrun rospy_tutorials lis
 - ROS 2 talker and listener
 
 ```bash
-tomoyafujita@~/DVT >export DOCKERHUB_USERNAME="tomoyafujita"
-tomoyafujita@~/DVT >docker run -it --rm $DOCKERHUB_USERNAME/ros:rolling /bin/bash
+> export DOCKERHUB_USERNAME="tomoyafujita"
+> docker run -it --rm $DOCKERHUB_USERNAME/ros:rolling /bin/bash
 root@266162be906b:/# source /opt/ros/rolling/setup.bash
 root@266162be906b:/# ros2 run demo_nodes_cpp talker & ros2 run demo_nodes_py listener
 [1] 88

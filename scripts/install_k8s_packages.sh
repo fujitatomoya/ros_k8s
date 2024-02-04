@@ -4,6 +4,9 @@
 #set -exvfC
 set -e
 
+### User Setting
+KUBERNETES_VERSION=1.26.9-00
+
 ### Confirmation to install all dependent packages
 
 echo "-------------------------------------------------------------------"
@@ -25,7 +28,22 @@ done
 
 ### Functions Implementation
 
-install_container_runtime () {
+function exit_trap() {
+    if [ $? != 0 ]; then
+        echo "Command [$BASH_COMMAND] is failed"
+        exit 1
+    fi
+}
+
+function check_sudo() {
+	if [ "$EUID" -ne 0 ]; then
+		echo "Please run this script with sudo."
+		exit 1
+	fi
+}
+
+function install_container_runtime () {
+	trap exit_trap ERR
 	apt remove -y containerd docker.io
 	apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common dpkg-dev gnupg2
 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
@@ -42,31 +60,39 @@ install_container_runtime () {
 	docker version
 }
 
-install_kubernetes () {
+function install_kubernetes () {
+	trap exit_trap ERR
 	apt install -y apt-transport-https curl
 	curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
 	apt-add-repository -y "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-	apt install -y --allow-downgrades kubeadm=1.25.5-00 kubelet=1.25.5-00 kubectl=1.25.5-00
+	apt install -y --allow-downgrades kubeadm=$KUBERNETES_VERSION kubelet=$KUBERNETES_VERSION kubectl=$KUBERNETES_VERSION
 	kubeadm version
 	### kubectl version will try to access server that leads to error to exit this script
 	kubectl version --client
 }
 
-install_golang () {
+function install_golang () {
+	trap exit_trap ERR
 	add-apt-repository -y ppa:longsleep/golang-backports
 	apt update
-	### golang-1.19 or later should be fine, just installing
-	apt install -y golang-1.19 golang-go
+	### golang-1.21 or later should be fine, just installing
+	apt install -y golang-1.21 golang-go
 	go version
 }
 
-install_kind () {
-	go install sigs.k8s.io/kind@v0.16.0
+function install_kind () {
+	trap exit_trap ERR
+	go install sigs.k8s.io/kind@v0.19.0
 	### kind needs to be in path
 	$HOME/go/bin/kind version
 }
 
 ### Main
+
+# set the trap on error
+trap exit_trap ERR
+
+check_sudo
 
 echo "Install Container Runtime ----------"
 install_container_runtime
@@ -81,3 +107,5 @@ echo "Install KIND ----------"
 install_kind
 
 echo "Installation completed, enjoy your cluster !!!"
+
+exit 0

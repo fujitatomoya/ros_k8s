@@ -37,8 +37,8 @@ This will set up Kubernetes cluster on host system as followings.
 
 | Hostname | IP Address | OS | architecture |
 | --- | --- | --- | --- |
-| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu 20.04.5 LTS | x86_64 |
-| ubuntu | 192.168.1.79 | Ubuntu 20.04.5 LTS | aarch64 |
+| tomoyafujita | 192.168.1.248 | Ubuntu 22.04 (Ubuntu 20.04) | amd64 |
+| ubuntu | 192.168.1.79 | Ubuntu 20.04 | aarch64 (Raspberry Pi4) |
 
 - Virtualized Instance
 
@@ -63,6 +63,7 @@ This environment is very much useful to try or test your container images or ser
 
 - [ROS with Kubernetes Introduction in ROS TSC Meeting](https://www.slideshare.net/FujitaTomoya/rostscrosk8s20230309pdf)
 - [ROSCon 2023 ROS / ROS 2 with Kubernetes and KubeEdge](https://roscon.ros.org/2023/talks/ROS_with_KubernetesKubeEdge.pdf) / [Talk](https://vimeo.com/879001688/33b2495a49)
+- [ROS By the Bay Presentation Slide Deck](https://raw.githack.com/fujitatomoya/ros_k8s/master/presentation/ROS-By-the-Bay_20231214.html)
 
 ## Reference
 

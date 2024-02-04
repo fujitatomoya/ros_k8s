@@ -24,7 +24,7 @@ To control the capability such as `which node has display`, it will use node lab
 - Disable xhost access control
 
 ```bash
-tomoyafujita@~/DVT >xhost +local:root
+> xhost +local:root
 non-network local connections being added to access control list
 ```
 
@@ -33,9 +33,9 @@ non-network local connections being added to access control list
   In this example, `edgeserver` is the server runs GUI capability, but `edgedevice`.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=edgeserver
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=edgedevice
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+> kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=edgeserver
+> kubectl label nodes ubuntu nodetype=edgedevice
+> kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE   VERSION   LABELS
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   63m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
 ubuntu                                  Ready    <none>          45m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=edgedevice
@@ -44,7 +44,7 @@ ubuntu                                  Ready    <none>          45m   v1.25.5  
 - Start turtlesim and rqt on `edgeserver`, and start bash process node in `edgedevice`.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl apply -f ros2-turtlesim.yaml
+> kubectl apply -f ros2-turtlesim.yaml
 deployment.apps/ros2-turtlesim-gui created
 deployment.apps/rqt created
 deployment.apps/ros2-teleop-key created
@@ -55,12 +55,12 @@ deployment.apps/ros2-teleop-key created
   process is already running in the cluster system on the host `edgedevice` labeled, so we can jump in the container `turtle_teleop_key` via kubernetes command as below.
 
 ```bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl get pods
+> kubectl get pods
 NAME                                  READY   STATUS    RESTARTS   AGE
 ros2-teleop-key-75f7c5475c-s6hwj      1/1     Running   0          33s
 ros2-turtlesim-gui-849df7c66b-gzmt9   1/1     Running   0          33s
 rqt-5886589dfc-v8q92                  1/1     Running   0          33s
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/ros_k8s/yaml# kubectl exec --stdin --tty ros2-teleop-key-75f7c5475c-s6hwj -- /bin/bash
+> kubectl exec --stdin --tty ros2-teleop-key-75f7c5475c-s6hwj -- /bin/bash
 
 root@ros2-teleop-key-75f7c5475c-s6hwj:/# source /opt/ros/rolling/setup.bash
 root@ros2-teleop-key-75f7c5475c-s6hwj:/# ros2 run turtlesim turtle_teleop_key
@@ -93,13 +93,13 @@ It uses POSIX shared memory file `/dev/shm` in default including [Shared Memory 
 - Start DaemonSet
 
 ```bash
-root@tomoyafujita:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl apply -f ros2-data-sharing.yaml
+> kubectl apply -f ros2-data-sharing.yaml
 daemonset.apps/ros2-data-sharing created
 ```
 
 - Stop DaemonSet
 
 ```bash
-root@tomoyafujita:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl delete -f ros2-data-sharing.yaml
+> kubectl delete -f ros2-data-sharing.yaml
 daemonset.apps "ros2-data-sharing" deleted
 ```

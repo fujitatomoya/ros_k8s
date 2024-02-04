@@ -11,7 +11,7 @@ This is because that ROS Noetic network is based on TCP/UDP IP network w/o multi
 
 This example deploys all ROS 1 application containers for each cluster node.
 That is said rosmaster(roscore) will be starting on each cluster node and other ROS application container will be connecting each other in the localhost system as following.
-We can even jump in any cotnainers running in Kubernetes Pods in the cluster to see actually ROS application running and communicating each other.
+We can even jump in any containers running in Kubernetes Pods in the cluster to see actually ROS application running and communicating each other.
 
 **see deployment description [ROS DaemonSet Deployment](./../yaml/ros1-daemonset.yaml)**
 
@@ -22,16 +22,16 @@ We can even jump in any cotnainers running in Kubernetes Pods in the cluster to 
 root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl apply -f ./yaml/ros1-daemonset.yaml
 
 ### Check if deployment running as expected
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -o wide
+> kubectl get pods -o wide
 NAME                   READY   STATUS    RESTARTS   AGE   IP          NODE                                    NOMINATED NODE   READINESS GATES
 ros1-deamonset-67wdh   3/3     Running   0          14m   10.36.0.0   ubuntu                                  <none>           <none>
 ros1-deamonset-6zcj8   3/3     Running   0          14m   10.32.0.6   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 
 ### Jump in containers via kubernetes and play
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# echo $(kubectl get pods ros1-deamonset-67wdh -o jsonpath='{.spec.containers[*].name}')
+> echo $(kubectl get pods ros1-deamonset-67wdh -o jsonpath='{.spec.containers[*].name}')
 ros1-master ros1-talker ros1-listener
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl exec --stdin --tty ros1-deamonset-67wdh --container ros1-master -- /bin/bash
+> kubectl exec --stdin --tty ros1-deamonset-67wdh --container ros1-master -- /bin/bash
 root@ros1-deamonset-67wdh:/# source /opt/ros/noetic/setup.bash 
 root@ros1-deamonset-67wdh:/# rosnode list
 /rosout
@@ -77,17 +77,17 @@ To manage the fleet, here it adds the label to each node, which also used in the
 
 ```bash
 ### Show labels
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+> kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
 ubuntu                                  Ready    <none>          116m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
 
 ### Add labels
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=worker
+> kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
+> kubectl label nodes ubuntu nodetype=worker
 
 ### Check labels
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+> kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
 ubuntu                                  Ready    <none>          125m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
@@ -106,13 +106,13 @@ deployment.apps/listener-deployment created
 service/ros-listener created
 
 ### Check service and pods are running
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get pods -o wide
+> kubectl get pods -o wide
 NAME                                   READY   STATUS    RESTARTS   AGE   IP          NODE                                    NOMINATED NODE   READINESS GATES
 listener-deployment-5db88c77cf-79plx   1/1     Running   0          29m   10.32.0.5   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 roscore-deployment-5564978d47-bg4sj    1/1     Running   0          29m   10.32.0.4   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 talker-deployment-b468d7b5-2tf7k       1/1     Running   0          29m   10.44.0.1   ubuntu                                  <none>           <none>
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get services -o wide
+> kubectl get services -o wide
 NAME           TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE    SELECTOR
 kubernetes     ClusterIP   10.96.0.1    <none>        443/TCP   132m   <none>
 ros-listener   ClusterIP   None         <none>        <none>    29m    node=listener
@@ -120,14 +120,14 @@ ros-talker     ClusterIP   None         <none>        <none>    29m    node=talk
 rosmaster      ClusterIP   None         <none>        <none>    29m    node=roscore
 
 ### Check logs for each container
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs listener-deployment-5db88c77cf-79plx
+> kubectl logs listener-deployment-5db88c77cf-79plx
 [INFO] [1675841806.376591]: /listener_1_1675840013908I heard hello world 17918
 [INFO] [1675841806.476425]: /listener_1_1675840013908I heard hello world 17919
 [INFO] [1675841806.576383]: /listener_1_1675840013908I heard hello world 17920
 [INFO] [1675841806.676507]: /listener_1_1675840013908I heard hello world 17921
 [INFO] [1675841806.776493]: /listener_1_1675840013908I heard hello world 17922
 
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs talker-deployment-b468d7b5-2tf7k
+> kubectl logs talker-deployment-b468d7b5-2tf7k
 [ INFO] [1675841845.265373581]: hello world 18307
 [ INFO] [1675841845.365361230]: hello world 18308
 [ INFO] [1675841845.465356583]: hello world 18309
@@ -135,7 +135,7 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl logs talker-deployment-b46
 [ INFO] [1675841845.665285753]: hello world 18311
 
 ### Login one of container to issue ROS CLI
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl exec --stdin --tty talker-deployment-b468d7b5-2tf7k -- /bin/bash
+> kubectl exec --stdin --tty talker-deployment-b468d7b5-2tf7k -- /bin/bash
 root@talker-deployment-b468d7b5-2tf7k:/# source /opt/ros/$ROS_DISTRO/setup.bash
 root@talker-deployment-b468d7b5-2tf7k:/# rostopic list
 /chatter
@@ -173,17 +173,17 @@ To target the containers to specific nodes, it also adds the lable to each node,
 
 ```bash
 ### Show labels
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+> kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
 ubuntu                                  Ready    <none>          116m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
 
 ### Add labels
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl label nodes ubuntu nodetype=worker
+> kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
+> kubectl label nodes ubuntu nodetype=worker
 
 ### Check labels
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~# kubectl get nodes --show-labels
+> kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
 tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
 ubuntu                                  Ready    <none>          125m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
@@ -195,13 +195,13 @@ Start deployment using yaml description that binds host network interface to eac
 
 ```bash
 ### Start deployment
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl apply -f ./yaml/ros1-multinode-hostnic.yaml
+> kubectl apply -f ./yaml/ros1-multinode-hostnic.yaml
 deployment.apps/roscore-deployment created
 deployment.apps/talker-deployment created
 deployment.apps/listener-deployment created
 
 ### Check service and pods are running
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/home/tomoyafujita/DVT/github.com/fujitatomoya/ros_k8s/yaml# kubectl get pods
+> kubectl get pods
 NAME                                  READY   STATUS    RESTARTS   AGE
 listener-deployment-8bbb859b4-x4hqb   1/1     Running   0          8m22s
 roscore-deployment-8487c6655d-7pqgs   1/1     Running   0          8m22s
@@ -216,18 +216,18 @@ This is useful to see the activity from the outside of kubernetes cluster.
 
 ```bash
 ### Start docker container using ros:noetic (nonroot user can be used)
-tomoyafujita@~ >docker pull tomoyafujita/ros:noetic
+> docker pull tomoyafujita/ros:noetic
 noetic: Pulling from tomoyafujita/ros
 Digest: sha256:b2e99673bc2c37d9906f0a716fdd98f07e93dee8c354120432dbfdad97087b23
 Status: Downloaded newer image for tomoyafujita/ros:noetic
 docker.io/tomoyafujita/ros:noetic
 
-tomoyafujita@~ >docker run -it --privileged --network host --name noetic-docker  tomoyafujita/ros:noetic
+> docker run -it --privileged --network host --name noetic-docker  tomoyafujita/ros:noetic
 
 ### Inside Container
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# export ROS_MASTER_URI=http://tomoyafujita-HP-Compaq-Elite-8300-SFF:11311
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# source /opt/ros/$ROS_DISTRO/setup.bash
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# rostopic list
+> export ROS_MASTER_URI=http://tomoyafujita-HP-Compaq-Elite-8300-SFF:11311
+> source /opt/ros/$ROS_DISTRO/setup.bash
+> rostopic list
 /chatter
 /rosout
 /rosout_agg
