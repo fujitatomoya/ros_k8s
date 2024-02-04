@@ -59,7 +59,7 @@ Instead of having CNI deployed to bring the Kubernetes API-server up and runnig,
 
 ```bash
 > wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-amd64.tar.gz
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# tar -zxvf keadm-v1.14.2-linux-amd64.tar.gz 
+> tar -zxvf keadm-v1.14.2-linux-amd64.tar.gz
 keadm-v1.14.2-linux-amd64/
 keadm-v1.14.2-linux-amd64/version
 keadm-v1.14.2-linux-amd64/keadm/

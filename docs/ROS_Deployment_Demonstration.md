@@ -19,7 +19,7 @@ We can even jump in any containers running in Kubernetes Pods in the cluster to 
 
 ```bash
 ### Start deployment described above
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl apply -f ./yaml/ros1-daemonset.yaml
+> kubectl apply -f ./yaml/ros1-daemonset.yaml
 
 ### Check if deployment running as expected
 > kubectl get pods -o wide
@@ -55,7 +55,7 @@ root@ros1-deamonset-67wdh:/# exit
 exit
 
 ### Stop deployment described above
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl delete -f ./yaml/ros1-daemonset.yaml
+> kubectl delete -f ./yaml/ros1-daemonset.yaml
 ```
 
 ### ROS Multi-Node Deployment with CNI
@@ -97,7 +97,7 @@ ubuntu                                  Ready    <none>          125m   v1.25.5 
 
 ```bash
 ### Start deployment
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl apply -f ./yaml/ros1-multinode.yaml
+> kubectl apply -f ./yaml/ros1-multinode.yaml
 deployment.apps/roscore-deployment created
 service/rosmaster created
 deployment.apps/talker-deployment created
@@ -149,7 +149,7 @@ root@talker-deployment-b468d7b5-2tf7k:/# exit
 exit
 
 ### Stop deployment
-root@tomoyafujita-HP-Compaq-Elite-8300-SFF:~/ros_k8s# kubectl delete -f ./yaml/ros1-multinode.yaml
+> kubectl delete -f ./yaml/ros1-multinode.yaml
 deployment.apps "roscore-deployment" deleted
 service "rosmaster" deleted
 deployment.apps "talker-deployment" deleted

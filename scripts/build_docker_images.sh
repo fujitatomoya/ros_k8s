@@ -106,7 +106,7 @@ check_dockerhub_setting
 echo "Buiding Container Images ----------"
 build_images
 
-if [ "$build_manifest" = true ]; then
+if [ "$build_manifest" == true ]; then
     echo "Building Container Manifest ----------"
     build_manifest_for_images
 fi
