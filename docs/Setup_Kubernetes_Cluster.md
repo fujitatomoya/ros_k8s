@@ -61,7 +61,7 @@ kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitC
 > systemctl restart docker
 
 ### Initialize master node, it might take a few minutes to complete
-> kubeadm init --pod-network-cidr=10.244.0.0/16
+> kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock
 I0116 15:51:52.208739    7616 version.go:256] remote version is much newer: v1.26.0; falling back to: stable-1.25
 [init] Using Kubernetes version: v1.25.5
 [preflight] Running pre-flight checks
@@ -138,7 +138,8 @@ kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitC
 
 > systemctl restart docker
 > kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
-> --discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241
+> --discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241 \
+> --cri-socket unix:///var/run/containerd/containerd.sock
 [preflight] Running pre-flight checks
 [preflight] Reading configuration from the cluster...
 [preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
