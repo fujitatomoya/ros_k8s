@@ -461,7 +461,8 @@ the following command needs to be issues on each node in the cluster system.
 
 ```bash
 kubeadm reset -f
-\rm -rf $HOME/.kube/config
+rm -rf $HOME/.kube/config
+### CNI conflist will be re-created by CNI installation.
 rm -rf /etc/cni/net.d
 
 ### If WeaveNet CNI was deployed

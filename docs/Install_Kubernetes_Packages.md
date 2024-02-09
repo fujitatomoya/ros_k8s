@@ -82,15 +82,15 @@ In this tutorial, we use Kuberentes `v1.26.9-00`.
 > add-apt-repository -y ppa:longsleep/golang-backports
 > apt update
 
-### golang-1.19 or later should be fine, just installing
-> apt install golang-1.19 golang-go
+### golang-1.21 or later should be fine, just installing
+> apt install golang-1.21 golang-go
 > go version
 ```
 
 ## Kind
 
 ```bash
-> go install sigs.k8s.io/kind@v0.16.0
+> go install sigs.k8s.io/kind@v0.19.0
 
 ## kind needs to be in path
 > $HOME/go/bin/kind version
