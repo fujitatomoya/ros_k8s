@@ -132,6 +132,29 @@ deployment.apps/discovery-server-secondary created
 service/secondary-discovery-server created
 ```
 
+  As you can see below, services do not have any cluster IP addresses since those are headless services.
+  Instead, those services are bound to the IP addresses of pods running the discovery server application containers.
+
+```bash
+>kubectl get pods -o wide
+NAME                                         READY   STATUS    RESTARTS   AGE   IP          NODE                 NOMINATED NODE   READINESS GATES
+discovery-server-primary-6ccc9cb949-qdcxw    1/1     Running   0          45m   10.32.0.2   kind-control-plane   <none>           <none>
+discovery-server-secondary-9bfc46bb4-t9jms   1/1     Running   0          45m   10.32.0.3   kind-control-plane   <none>           <none>
+ros2-listener-1-847d6c848d-7655m             1/1     Running   0          43m   10.44.0.4   kind-worker          <none>           <none>
+ros2-listener-2-799b457dff-qdgrj             1/1     Running   0          43m   10.40.0.4   kind-worker2         <none>           <none>
+ros2-listener-3-768dff8698-t9sdg             1/1     Running   0          43m   10.44.0.5   kind-worker          <none>           <none>
+ros2-talker-1-7484866974-ddlt7               1/1     Running   0          43m   10.40.0.2   kind-worker2         <none>           <none>
+ros2-talker-2-87b8db554-z7fwz                1/1     Running   0          43m   10.40.0.1   kind-worker2         <none>           <none>
+ros2-talker-3-7bd6fcdd74-jntmx               1/1     Running   0          43m   10.40.0.3   kind-worker2         <none>           <none>
+
+>kubectl exec --tty --stdin ros2-listener-1-847d6c848d-7655m -- nslookup primary-discovery-server
+Server:		10.96.0.10
+Address:	10.96.0.10#53
+
+Name:	primary-discovery-server.default.svc.cluster.local
+Address: 10.32.0.2
+```
+
 - ROS 2 Talker and Listener Application Deployment
 
   Once discovery servers are deployed, we can start the application container anywhere we want in the cluster system.
