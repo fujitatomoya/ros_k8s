@@ -1,0 +1,122 @@
+###############################################
+### ROS 2 Fast-DDS Discovery Primary Server ###
+###############################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-server-primary
+  labels:
+    app: ros2-fastdds-discovery
+    node: server-primary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      node: server-primary
+  template:
+    metadata:
+      labels:
+        node: server-primary
+    spec:
+      containers:
+      - name: server-primary
+        tty: true
+        image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery --server-id 0 --port 11811"]
+        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery --server-id 0 --port 11811 --backup"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 11811
+          name: primary-port
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+
+---
+
+### Headless service declaration.
+### This is required to map to app server-primary so that other pods can DNS discovery server cluster IP address dynamically.
+apiVersion: v1
+kind: Service
+metadata:
+  name: primary-discovery-server
+  labels:
+    app: ros2-fastdds-discovery
+    node: server-primary
+spec:
+  clusterIP: None
+  #ports:
+  #  - port: 11811
+  selector:
+    node: server-primary
+
+---
+
+#################################################
+### ROS 2 Fast-DDS Discovery Secondary Server ###
+#################################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-server-secondary
+  labels:
+    app: ros2-fastdds-discovery
+    node: server-secondary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      node: server-secondary
+  template:
+    metadata:
+      labels:
+        node: server-secondary
+    spec:
+      containers:
+      - name: server-secondary
+        tty: true
+        image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery --server-id 1 --port 11888"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 11888
+          name: secondary-port
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+
+---
+
+### Headless service declaration.
+### This is required to map to app server-secondary so that other pods can DNS discovery server cluster IP address dynamically.
+apiVersion: v1
+kind: Service
+metadata:
+  name: secondary-discovery-server
+  labels:
+    app: ros2-fastdds-discovery
+    node: server-secondary
+spec:
+  clusterIP: None
+  #ports:
+  #  - port: 11888
+  selector:
+    node: server-secondary
+
+---
