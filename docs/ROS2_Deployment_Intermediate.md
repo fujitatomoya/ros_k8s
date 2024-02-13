@@ -103,3 +103,48 @@ daemonset.apps/ros2-data-sharing created
 > kubectl delete -f ros2-data-sharing.yaml
 daemonset.apps "ros2-data-sharing" deleted
 ```
+
+### ROS 2 Fast-DDS Discovery Server
+
+ROS 2 provides [Fast-DDS discovery server](https://fast-dds.docs.eprosima.com/en/v2.1.0/fastdds/discovery/discovery_server.html#discovery-server), that is a feature to support centralized dynamic discovery mechanism.
+Centralized discovery is way more efficient for discovery process compared to distributed discovery protocol, this improves significant discovery performance when there are many ROS 2 context (a.k.a DDS participant) in the network.
+
+But this centralized design also brings back the problem for the static configuration for the ROS 2 application, which requires to set the discovery server IP addresses when the application starts.
+Taking advantage of DNS and Headless service provided by Kubernetes, discovery server IP addresses are resolved dynamically by DNS in the cluster network.
+
+This example shows how to start the [Fast-DDS discovery server](https://fast-dds.docs.eprosima.com/en/v2.1.0/fastdds/discovery/discovery_server.html#discovery-server) with headless service, and how application resolves the addresses by DNS.
+
+**see deployment description [ROS 2 Fast-DDS Discovery Server](./../yaml/ros2-fastdds-discovery-server.yaml) and [Application Deployment](./../yaml/ros2-fastdds-discovery-server-apps.yaml)**
+
+![ROS 2 Fast-DDS Discovery Server](./../images/ros2_fastdds_discovery_server.png)
+
+- Fast-DDS Discovery Server Primary and Secondary
+
+  [ROS 2 Fast-DDS Discovery Server](./../yaml/ros2-fastdds-discovery-server.yaml) starts running primary and secondary discovery server with specific port number with any available network interfaces in the pods.
+  These discovery server containers will be deployed to the `control-plane` in this example, but this can be deployed anywhere else.
+  It is highly recommended that primary and secondary discovery server should be deployed to different physical host system, so that it can tolerate the situation.
+
+```bash
+>kubectl apply -f ./yaml/ros2-fastdds-discovery-server.yaml
+deployment.apps/discovery-server-primary created
+service/primary-discovery-server created
+deployment.apps/discovery-server-secondary created
+service/secondary-discovery-server created
+```
+
+- ROS 2 Talker and Listener Application Deployment
+
+  Once discovery servers are deployed, we can start the application container anywhere we want in the cluster system.
+  In the [Application Deployment](./../yaml/ros2-fastdds-discovery-server-apps.yaml), it binds the `ROS_DISCOVERY_SERVER` environmental variable with DNS name `primary-discovery-server:11811;secondary-discovery-server:11888`.
+  These URLs are resolved by DNS in the cluster when the application starts, and they will be replaced into the cluster IP addresses where discovery server containers are running.
+  After all, all ROS 2 application containers are able to access discovery servers in the cluster system to connect endpoints to start communication.
+
+```bash
+> kubectl apply -f ./yaml/ros2-fastdds-discovery-server-apps.yaml
+deployment.apps/ros2-talker-1 created
+deployment.apps/ros2-talker-2 created
+deployment.apps/ros2-talker-3 created
+deployment.apps/ros2-listener-1 created
+deployment.apps/ros2-listener-2 created
+deployment.apps/ros2-listener-3 created
+```
