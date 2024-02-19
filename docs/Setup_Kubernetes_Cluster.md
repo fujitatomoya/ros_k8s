@@ -44,7 +44,7 @@ In this repository, we use [WeaveNet](https://github.com/weaveworks/weave) as CN
 ### Cgroup for docker is set into systemd
 > docker info | grep Cgroup
  Cgroup Driver: systemd
- Cgroup Version: 1
+ Cgroup Version: 2
 
 ### Make sure kubeadm is installed to start the cluster
 > kubeadm version
@@ -126,7 +126,7 @@ We need to do this procedure for all worker nodes to join the cluster system.
 
 > docker info | grep Cgroup
  Cgroup Driver: systemd
- Cgroup Version: 1
+ Cgroup Version: 2
 
 > kubeadm version
 kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitCommit:"804d6167111f6858541cef440ccc53887fbbc96a", GitTreeState:"clean", BuildDate:"2022-12-08T10:13:29Z", GoVersion:"go1.19.4", Compiler:"gc", Platform:"linux/arm64"}
