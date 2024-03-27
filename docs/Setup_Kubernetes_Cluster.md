@@ -169,7 +169,211 @@ ubuntu                                  Ready    <none>          14s     v1.25.5
 To get cluster nodes ready, we need to deploy CNI plugin as pods.
 Here it describes install / uninstall CNI plugins via `kubectl`, CNI plugins are managed under kubernetes pods as well.
 
-- [Flannel](https://github.com/flannel-io/flannel)
+### [Cilium](https://cilium.io/)
+
+You can refer to [Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick) for Kubernetes if needed.
+
+#### Install Cilium CLI
+
+This operation is only requires once for master node.
+The Cilium CLI can be used to install Cilium, inspect the state of a Cilium installation, and enable/disable various features.
+
+```bash
+> sudo su -
+[sudo] password for tomoyafujita:
+> cd <repo>/scripts
+> ./install_cilium_cli.sh
+Cilium CLI version is v0.12.12
+CPU architecture is amd64
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 25.4M  100 25.4M    0     0  10.2M      0  0:00:02  0:00:02 --:--:-- 14.5M
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100    92  100    92    0     0    245      0 --:--:-- --:--:-- --:--:--   245
+cilium-linux-amd64.tar.gz: OK
+cilium
+Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
+```
+
+#### Install Cilium CNI to the Kubernetes Cluster
+
+```bash
+> cilium version
+cilium-cli: v0.12.12 compiled with go1.19.4 on linux/amd64
+cilium image (default): v1.12.5
+cilium image (stable): v1.12.5
+cilium image (running): unknown. Unable to obtain cilium version, no cilium pods found in namespace "kube-system"
+
+> cilium install
+ℹ️  Using Cilium version 1.12.5
+🔮 Auto-detected cluster name: kubernetes
+🔮 Auto-detected datapath mode: tunnel
+🔮 Auto-detected kube-proxy has been installed
+ℹ️  helm template --namespace kube-system cilium cilium/cilium --version 1.12.5 --set cluster.id=0,cluster.name=kubernetes,encryption.nodeEncryption=false,kubeProxyReplacement=disabled,operator.replicas=1,serviceAccounts.cilium.name=cilium,serviceAccounts.operator.name=cilium-operator,tunnel=vxlan
+ℹ️  Storing helm values file in kube-system/cilium-cli-helm-values Secret
+🔑 Created CA in secret cilium-ca
+🔑 Generating certificates for Hubble...
+🚀 Creating Service accounts...
+🚀 Creating Cluster roles...
+🚀 Creating ConfigMap for Cilium version 1.12.5...
+🚀 Creating Agent DaemonSet...
+🚀 Creating Operator Deployment...
+⌛ Waiting for Cilium to be installed and ready...
+♻️  Restarting unmanaged pods...
+♻️  Restarted unmanaged pod kube-system/coredns-565d847f94-sn4ht
+✅ Cilium was successfully installed! Run 'cilium status' to view installation health
+
+> cilium status
+    /¯¯\
+/¯¯\__/¯¯\    Cilium:         OK
+\__/¯¯\__/    Operator:       OK
+/¯¯\__/¯¯\    Hubble:         disabled
+\__/¯¯\__/    ClusterMesh:    disabled
+    \__/
+
+Deployment        cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+DaemonSet         cilium             Desired: 2, Ready: 2/2, Available: 2/2
+Containers:       cilium             Running: 2
+                  cilium-operator    Running: 1
+Cluster Pods:     2/3 managed by Cilium
+Image versions    cilium             quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5: 2
+                  cilium-operator    quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e: 1
+
+> kubectl get pods -A | grep cilium
+kube-system   cilium-operator-74b8595d7b-v6j42                                1/1     Running   0          3m43s
+kube-system   cilium-pbntp                                                    1/1     Running   0          3m43s
+kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
+```
+
+#### Enable Security Encryption
+
+Cilium provides security encryption feature either IPsec or Wireguard statically during initialization.
+Packets are not encrypted when they are destined to the same node from which they were sent. This behavior is intended.
+Encryption would provide no benefits in that case, given that the raw traffic can be observed on the node anyway.
+Encryption requires key, the following procedure uses Kubernetes Secret to bind the key for cilium encryption.
+
+```bash
+### If cilium is already deployed, uninstall from cluster system
+> cilium uninstall
+
+### Create Kubernetes Secret that is used for encryption
+> PSK=($(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64))
+
+> echo $PSK
+47b57a0241e4c5df0a196ccfbcc7ee1aff204100
+
+> kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3 rfc4106(gcm(aes)) $PSK 128"
+secret/cilium-ipsec-keys created
+
+> kubectl describe secret -n kube-system cilium-ipsec-keys
+Name:         cilium-ipsec-keys
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+keys:  64 bytes
+
+> SECRET="$(kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data}' -n kube-system | jq -r ".keys")"
+> echo $SECRET | base64 --decode
+3 rfc4106(gcm(aes)) 47b57a0241e4c5df0a196ccfbcc7ee1aff204100 128
+
+### Start deployment with enabling encryption
+> cilium install --encryption ipsec
+
+### Check IPsec is enabled
+> cilium config view | grep ipsec
+enable-ipsec                               true
+ipsec-key-file                             /etc/ipsec/keys
+```
+
+#### Enable Multicast (W.I.P)
+
+> [!NOTE]
+> Currently multicast feature is only available in [cilium:main](https://github.com/cilium/cilium/tree/main) branch, still under development.
+
+The current mainstream container network plug-ins (such as Calico and Cilium) do not natively support multicast, in addition to this, WeaveNet supports multicast, but entire open source project has gone end of life.
+
+Cilium is one of the most advanced container network plug-in supports multicast (some features e.g IPsec are under progress.) based on eBPF focuses on solving the problem of efficient multicast transmission in the container network and provides support for multiple multicast protocols.
+
+In default Cilium multicast feature is disabled, so we need to walk through the following configuration.
+
+- Enable multicast feature
+
+  After Cilium is deployed in the cluster, we can enable the multicast feature.
+  This will restart the cilium-agent pods in the cluster.
+
+  ```bash
+  ### Check vxlan mode is enabled
+  > kubectl get configmap cilium-config -n kube-system -o yaml | grep vxlan
+    tunnel-protocol: vxlan
+
+  ### Enable multicast feature
+  > cilium config set multicast-enabled true
+  ✨ Patching ConfigMap cilium-config with multicast-enabled=true...
+  ♻️  Restarted Cilium pods
+  ```
+
+- Configure Multicast Group IP addresses and Subscribers
+
+  To use multicast with Cilium, we need to configure multicast group and subscriber IP addresses based on the application requirement.
+  ROS 2 (DDS) well-known multicast group IP address is `239.255.0.1`.
+
+  **For each cilium pod**, we need to configure multicast groups.
+  The following commands need to be issued in `cilium` pods, there should be `cilium-dbg` command to access `cilium-agent`.
+
+  ```bash
+  > cilium-dbg bpf multicast group add 239.255.0.1
+  > cilium-dbg bpf multicast group list
+  Group Address
+  239.255.0.1
+  #cilium-dbg bpf multicast group delete
+  ```
+
+  Then we need to configure group subscriber IP addresses to that group from `CILIUMINTERNALIP` below.
+
+  ```bash
+  > kubectl get ciliumnodes.cilium.io
+  NAME                 CILIUMINTERNALIP   INTERNALIP   AGE
+  kind-control-plane   10.244.0.72        172.19.0.2   16m
+  kind-worker          10.244.1.86        172.19.0.3   16m
+  ```
+
+  **For each cilium pod**, we need to configure subscriber IP addresses to group.
+  The following commands need to be issued in `cilium` pods, there should be `cilium-dbg` command to access `cilium-agent`.
+
+  ```bash
+  # On kind-control-plane
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.1.86
+  #cilium-dbg bpf multicast subscriber delete 239.255.0.1 10.244.1.86
+  cilium-dbg bpf multicast subscriber list all
+  Group           Subscriber      Type
+  239.255.0.1     10.244.1.86     Remote Node
+
+  # On kind-worker
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.0.72
+  #cilium-dbg bpf multicast subscriber delete 239.255.0.1 10.244.0.72
+  cilium-dbg bpf multicast subscriber list all
+  ```
+
+- Related PRs
+  - Issues
+    - https://github.com/cilium/cilium/issues/13239, https://github.com/cilium/cilium/issues/28750
+    - https://github.com/cilium/cilium/issues/29470 (Multicast Network Policy Support, tracking issue)
+    - https://github.com/cilium/cilium/issues/29471 (Multicast IPSec Support, tracking issue)
+  - Design CFP
+    - https://github.com/cilium/design-cfps/pull/20
+  - Pull Requests
+    - https://github.com/cilium/cilium/pull/29469
+    - https://github.com/cilium/cilium/pull/31355
+
+### [Flannel](https://github.com/flannel-io/flannel)
 
 ```bash
 ### Install
@@ -185,215 +389,92 @@ daemonset.apps/kube-flannel-ds created
 > kubectl delete -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 ```
 
-- [WeaveNet](https://github.com/weaveworks/weave)
+### [WeaveNet](https://github.com/weaveworks/weave) **(E.O.L)**
 
-  - Start/Stop WeaveNet DaemonSets
+#### Start/Stop WeaveNet DaemonSets
 
-    ```bash
-    ### Install
-    > kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
-    ### Uninstall
-    > kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
-    ```
+```bash
+### Install
+> kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
+### Uninstall
+> kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
+```
 
-    Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
-    This problem is issued on https://github.com/weaveworks/weave/issues/3976, and after this problem (docker image multi-arch support for arm64) has been addressed, we should use the latest deployment file.
+Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
+This problem is issued on https://github.com/weaveworks/weave/issues/3976, and after this problem (docker image multi-arch support for arm64) has been addressed, we should use the latest deployment file.
 
-    ```bash
-    ### Install
-    > kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-    ### Uninstall
-    > kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-    ```
+```bash
+### Install
+> kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+### Uninstall
+> kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+```
 
-  - Security Encryption
+#### Security Encryption
 
-    WeaveNet provides authentication and encryption based on password, which is used for create session keys for the communication between peers.
-    WeaveNet uses fast datapath via Kernel OpenVswitch, and IPsec ESP can be enabled statically before any application pods are created.
+WeaveNet provides authentication and encryption based on password, which is used for create session keys for the communication between peers.
+WeaveNet uses fast datapath via Kernel OpenVswitch, and IPsec ESP can be enabled statically before any application pods are created.
 
-    ```bash
-    > curl -L git.io/weave -o /usr/local/bin/weave
-    > chmod a+x /usr/local/bin/weave
+```bash
+> curl -L git.io/weave -o /usr/local/bin/weave
+> chmod a+x /usr/local/bin/weave
 
-    ### Weave CLI installs docker container to connect weavenet daemon to execute the command
-    > weave status
+### Weave CLI installs docker container to connect weavenet daemon to execute the command
+> weave status
 
-            Version: 2.8.1 (failed to check latest version - see logs; next check at 2023/03/05 01:37:01)
+        Version: 2.8.1 (failed to check latest version - see logs; next check at 2023/03/05 01:37:01)
 
-            Service: router
-          Protocol: weave 1..2
-              Name: 16:8b:92:14:73:c4(tomoyafujita-hp-compaq-elite-8300-sff)
-        Encryption: disabled
-      PeerDiscovery: enabled
-            Targets: 1
-        Connections: 1 (1 established)
-              Peers: 2 (with 2 established connections)
-    TrustedSubnets: none
+        Service: router
+      Protocol: weave 1..2
+          Name: 16:8b:92:14:73:c4(tomoyafujita-hp-compaq-elite-8300-sff)
+    Encryption: disabled
+  PeerDiscovery: enabled
+        Targets: 1
+    Connections: 1 (1 established)
+          Peers: 2 (with 2 established connections)
+TrustedSubnets: none
 
-            Service: ipam
-            Status: ready
-              Range: 10.32.0.0/12
-      DefaultSubnet: 10.32.0.0/12
-    ```
+        Service: ipam
+        Status: ready
+          Range: 10.32.0.0/12
+  DefaultSubnet: 10.32.0.0/12
+```
 
-    As we can see above, WeaveNet does not enable encryption by default.
-    Adding environmental variable with your own password can enable WeaveNet encryption, the following shows how to do so via Kubernetes Secret. (which can be bound to application pods at initialization.)
+As we can see above, WeaveNet does not enable encryption by default.
+Adding environmental variable with your own password can enable WeaveNet encryption, the following shows how to do so via Kubernetes Secret. (which can be bound to application pods at initialization.)
 
-    ```bash
-    > openssl rand -hex 128 > weave-passwd
+```bash
+> openssl rand -hex 128 > weave-passwd
 
-    > kubectl create secret -n kube-system generic weave-passwd --from-file=./weave-passwd
-    secret/weave-passwd created
+> kubectl create secret -n kube-system generic weave-passwd --from-file=./weave-passwd
+secret/weave-passwd created
 
-    > kubectl describe secret -n kube-system weave-passwd
-    Name:         weave-passwd
-    Namespace:    kube-system
-    Labels:       <none>
-    Annotations:  <none>
+> kubectl describe secret -n kube-system weave-passwd
+Name:         weave-passwd
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  <none>
 
-    Type:  Opaque
+Type:  Opaque
 
-    Data
-    ====
-    weave-passwd:  257 bytes
+Data
+====
+weave-passwd:  257 bytes
 
-    > kubectl edit --namespace=kube-system daemonset weave-net
-    daemonset.apps/weave-net edited
+> kubectl edit --namespace=kube-system daemonset weave-net
+daemonset.apps/weave-net edited
 
-    ### add the following under `spec.template.spec.containers`
-    env:
-    - name: WEAVE_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: weave-passwd
-          key: weave-passwd
+### add the following under `spec.template.spec.containers`
+env:
+- name: WEAVE_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: weave-passwd
+      key: weave-passwd
 
-    > weave status | grep Encryption
-        Encryption: enabled
-    ```
-
-- [Cilium](https://cilium.io/)
-
-  You can refer to [Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick) for Kubernetes if needed.
-
-  - Install Cilium CLI
-
-    This operation is only requires once for master node.
-    The Cilium CLI can be used to install Cilium, inspect the state of a Cilium installation, and enable/disable various features.
-
-    ```bash
-    > sudo su -
-    [sudo] password for tomoyafujita:
-    > cd <repo>/scripts
-    > ./install_cilium_cli.sh
-    Cilium CLI version is v0.12.12
-    CPU architecture is amd64
-      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                    Dload  Upload   Total   Spent    Left  Speed
-      0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-    100 25.4M  100 25.4M    0     0  10.2M      0  0:00:02  0:00:02 --:--:-- 14.5M
-      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                    Dload  Upload   Total   Spent    Left  Speed
-      0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-    100    92  100    92    0     0    245      0 --:--:-- --:--:-- --:--:--   245
-    cilium-linux-amd64.tar.gz: OK
-    cilium
-    Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
-    ```
-
-  - Install Cilium CNI to the Kubernetes Cluster
-
-    ```bash
-    > cilium version
-    cilium-cli: v0.12.12 compiled with go1.19.4 on linux/amd64
-    cilium image (default): v1.12.5
-    cilium image (stable): v1.12.5
-    cilium image (running): unknown. Unable to obtain cilium version, no cilium pods found in namespace "kube-system"
-
-    > cilium install
-    ℹ️  Using Cilium version 1.12.5
-    🔮 Auto-detected cluster name: kubernetes
-    🔮 Auto-detected datapath mode: tunnel
-    🔮 Auto-detected kube-proxy has been installed
-    ℹ️  helm template --namespace kube-system cilium cilium/cilium --version 1.12.5 --set cluster.id=0,cluster.name=kubernetes,encryption.nodeEncryption=false,kubeProxyReplacement=disabled,operator.replicas=1,serviceAccounts.cilium.name=cilium,serviceAccounts.operator.name=cilium-operator,tunnel=vxlan
-    ℹ️  Storing helm values file in kube-system/cilium-cli-helm-values Secret
-    🔑 Created CA in secret cilium-ca
-    🔑 Generating certificates for Hubble...
-    🚀 Creating Service accounts...
-    🚀 Creating Cluster roles...
-    🚀 Creating ConfigMap for Cilium version 1.12.5...
-    🚀 Creating Agent DaemonSet...
-    🚀 Creating Operator Deployment...
-    ⌛ Waiting for Cilium to be installed and ready...
-    ♻️  Restarting unmanaged pods...
-    ♻️  Restarted unmanaged pod kube-system/coredns-565d847f94-sn4ht
-    ✅ Cilium was successfully installed! Run 'cilium status' to view installation health
-
-    > cilium status
-        /¯¯\
-    /¯¯\__/¯¯\    Cilium:         OK
-    \__/¯¯\__/    Operator:       OK
-    /¯¯\__/¯¯\    Hubble:         disabled
-    \__/¯¯\__/    ClusterMesh:    disabled
-        \__/
-
-    Deployment        cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
-    DaemonSet         cilium             Desired: 2, Ready: 2/2, Available: 2/2
-    Containers:       cilium             Running: 2
-                      cilium-operator    Running: 1
-    Cluster Pods:     2/3 managed by Cilium
-    Image versions    cilium             quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5: 2
-                      cilium-operator    quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e: 1
-
-    > kubectl get pods -A | grep cilium
-    kube-system   cilium-operator-74b8595d7b-v6j42                                1/1     Running   0          3m43s
-    kube-system   cilium-pbntp                                                    1/1     Running   0          3m43s
-    kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
-    ```
-
-  - Enable Security Encryption
-    Cilium provides security encryption feature either IPsec or Wireguard statically during initialization.
-    Packets are not encrypted when they are destined to the same node from which they were sent. This behavior is intended.
-    Encryption would provide no benefits in that case, given that the raw traffic can be observed on the node anyway.
-    Encryption requires key, the following procedure uses Kubernetes Secret to bind the key for cilium encryption.
-
-    ```bash
-    ### If cilium is already deployed, uninstall from cluster system
-    > cilium uninstall
-
-    ### Create Kubernetes Secret that is used for encryption
-    > PSK=($(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64))
-
-    > echo $PSK
-    47b57a0241e4c5df0a196ccfbcc7ee1aff204100
-
-    > kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3 rfc4106(gcm(aes)) $PSK 128"
-    secret/cilium-ipsec-keys created
-
-    > kubectl describe secret -n kube-system cilium-ipsec-keys
-    Name:         cilium-ipsec-keys
-    Namespace:    kube-system
-    Labels:       <none>
-    Annotations:  <none>
-
-    Type:  Opaque
-
-    Data
-    ====
-    keys:  64 bytes
-
-    > SECRET="$(kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data}' -n kube-system | jq -r ".keys")"
-    > echo $SECRET | base64 --decode
-    3 rfc4106(gcm(aes)) 47b57a0241e4c5df0a196ccfbcc7ee1aff204100 128
-
-    ### Start deployment with enabling encryption
-    > cilium install --encryption ipsec
-
-    ### Check IPsec is enabled
-    > cilium config view | grep ipsec
-    enable-ipsec                               true
-    ipsec-key-file                             /etc/ipsec/keys
-    ```
+> weave status | grep Encryption
+    Encryption: enabled
+```
 
 ## Kubernetes Dashboard
 
