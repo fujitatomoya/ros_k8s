@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-secured-talker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-secured-talker
+  template:
+    metadata:
+      labels:
+        app: ros2-secured-talker
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        # Bind the security environmental variable
+        envFrom:
+        - configMapRef:
+            name: security-env-config
+        # Start the application with security option
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp talker --ros-args --enclave /talker_listener/talker"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-secured-talker
+        # Bind the volume
+        volumeMounts:
+        - name: talker-security
+          mountPath: /etc/demo_keystore/enclaves/talker_listener/talker
+      # Create volume to bind from ConfigMap
+      volumes:
+      - name: talker-security
+        configMap:
+          name: talker-enclaves
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-secured-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-secured-listener
+  template:
+    metadata:
+      labels:
+        app: ros2-secured-listener
+    spec:
+      containers:
+      - image: tomoyafujita/ros:rolling
+        command: ["/bin/bash", "-c"]
+        # Bind the security environmental variable
+        envFrom:
+        - configMapRef:
+            name: security-env-config
+        # Start the application with security option
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp listener --ros-args --enclave /talker_listener/listener"]
+        imagePullPolicy: IfNotPresent
+        tty: true
+        name: ros2-secured-listener
+        # Bind the volume
+        volumeMounts:
+        - name: listener-security
+          mountPath: /etc/demo_keystore/enclaves/talker_listener/listener
+      # Create volume to bind from ConfigMap
+      volumes:
+      - name: listener-security
+        configMap:
+          name: listener-enclaves
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
