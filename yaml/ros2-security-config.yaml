@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-env-config
+  namespace: default
+data:
+  ROS_SECURITY_KEYSTORE: /etc/demo_keystore
+  ROS_SECURITY_ENABLE: "true"
+  ROS_SECURITY_STRATEGY: Enforce

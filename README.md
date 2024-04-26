@@ -77,6 +77,7 @@ This environment is very much useful to try or test your container images or ser
   - [ROS 2 GUI Display Access](./docs/ROS2_Deployment_Intermediate.md#ros-2-gui-display-access)
   - [ROS 2 Zero Copy Data Sharing](./docs/ROS2_Deployment_Intermediate.md#ros-2-zero-copy-data-sharing)
   - [ROS 2 Fast-DDS Discovery Server](./docs/ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server)
+  - [ROS 2 Security Enclaves with ConfigMap](./docs/ROS2_Deployment_Intermediate.md#ros-2-security-enclaves-with-configmap)
 - [Robotics System General](./docs/Robotics_System_General.md)
   - [Reserve Resources for Host System](./docs/Robotics_System_General.md#reserve-resources-for-host-system)
   - [Assign Resources to Pods/Containers](./docs/Robotics_System_General.md#assign-resources-to-podscontainers)

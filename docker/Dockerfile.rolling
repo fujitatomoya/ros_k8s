@@ -23,6 +23,8 @@ RUN apt-get update \
     net-tools \
     iputils-ping \
     dnsutils \
+    # ROS 2 Security
+    libssl-dev \
     # install full packages including GUI
     ros-${ROS_DISTRO}-desktop \
     # install cyclonedds
