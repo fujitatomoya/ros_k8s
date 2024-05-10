@@ -65,10 +65,10 @@ function install_kubernetes () {
 	apt remove -y --allow-change-held-packages kubelet kubectl kubeadm
 	apt install -y apt-transport-https ca-certificates curl
 	curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key | gpg --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+	echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
 	apt update -y
 	apt install -y kubelet kubeadm kubectl
-    apt-mark hold kubelet kubeadm kubectl
+	apt-mark hold kubelet kubeadm kubectl
 	kubeadm version
 	### kubectl version will try to access server that leads to error to exit this script
 	kubectl version --client
