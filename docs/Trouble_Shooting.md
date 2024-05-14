@@ -94,6 +94,52 @@ We need to reset the cluster and clear the files under `/etc/cni/net.d`.
 > rm /etc/cni/net.d/*
 ```
 
+### Nameserver Limits Exceeded
+
+if you see the following error for kubelet service, that is the [DNS resolver know issue](https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/#known-issues).
+
+```bash
+> systemctl status kubelet
+...
+Warning: The unit file, source configuration file or drop-ins of kubelet.service changed on disk. Run 'systemctl daemon-reload' t>
+○ kubelet.service
+     Loaded: masked (Reason: Unit kubelet.service is masked.)
+    Drop-In: /etc/systemd/system/kubelet.service.d
+             └─10-kubeadm.conf
+     Active: inactive (dead) since Fri 2024-02-09 11:26:41 PST; 2 months 30 days ago
+   Main PID: 20882 (code=exited, status=0/SUCCESS)
+        CPU: 41.031s
+
+Feb 09 11:25:02 edgemaster kubelet[20882]: E0209 11:25:02.547981   20882 dns.go:156] "Nameserver limits exceeded" err="Nameserver>
+Feb 09 11:25:35 edgemaster kubelet[20882]: E0209 11:25:35.548358   20882 dns.go:156] "Nameserver limits exceeded" err="Nameserver>
+Feb 09 11:25:54 edgemaster kubelet[20882]: E0209 11:25:54.549236   20882 dns.go:156] "Nameserver limits exceeded" err="Nameserver>
+Feb 09 11:25:58 edgemaster kubelet[20882]: E0209 11:25:58.547797   20882 dns.go:156] "Nameserver limits exceeded" err="Nameserver>
+Feb 09 11:26:04 edgemaster kubelet[20882]: E0209 11:26:04.547791   20882 dns.go:156] "Nameserver limits exceeded" err="Nameserver>
+Feb 09 11:26:23 edgemaster kubelet[20882]: E0209 11:26:23.548518   20882 dns.go:156] "Nameserver limits exceeded" err="Nameserver>
+Feb 09 11:26:41 edgemaster systemd[1]: Stopping kubelet: The Kubernetes Node Agent...
+Feb 09 11:26:41 edgemaster systemd[1]: kubelet.service: Deactivated successfully.
+Feb 09 11:26:41 edgemaster systemd[1]: Stopped kubelet: The Kubernetes Node Agent.
+Feb 09 11:26:41 edgemaster systemd[1]: kubelet.service: Consumed 41.031s CPU time.
+```
+
+we can work-around this add `--resolv-conf` for kubelet.service with less than equal 3 DNS server.
+
+```bash
+### unmask if it is masked already
+> systemctl unmask kubelet
+Removed /etc/systemd/system/kubelet.service.
+
+### create static resolver configuration for stability
+> cat /etc/resolv-static.conf
+nameserver xx.xx.xx.xx
+nameserver yy:yy:yy:yy:yy:yy:
+nameserver zz.zz.zz.zz
+
+### configure kubelet to use static resolver file
+> cat /etc/default/kubelet
+KUBELET_EXTRA_ARGS=--resolv-conf=/etc/resolv-static.conf
+```
+
 ### CNI plugins for KIND
 
 if using kind `v0.19.0` or earlier, it would be required to install CNI plugins in the host system and bind them into kind images.
