@@ -122,7 +122,7 @@ Feb 09 11:26:41 edgemaster systemd[1]: Stopped kubelet: The Kubernetes Node Agen
 Feb 09 11:26:41 edgemaster systemd[1]: kubelet.service: Consumed 41.031s CPU time.
 ```
 
-we can work-around this add `--resolv-conf` for kubelet.service with less than equal 3 DNS server.
+we can work-around this add `--resolv-conf` for kubelet.service with less than equal 3 DNS servers.
 
 ```bash
 ### unmask if it is masked already
