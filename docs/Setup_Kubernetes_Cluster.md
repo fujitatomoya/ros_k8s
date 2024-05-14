@@ -137,9 +137,7 @@ kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitC
 }
 
 > systemctl restart docker
-> kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
-> --discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241 \
-> --cri-socket unix:///var/run/containerd/containerd.sock
+> kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul --discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241 --cri-socket unix:///var/run/containerd/containerd.sock
 [preflight] Running pre-flight checks
 [preflight] Reading configuration from the cluster...
 [preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
@@ -542,8 +540,10 @@ Now you should be able to see the following Kubernetes cluster dashboard.
 the following command needs to be issues on each node in the cluster system.
 
 ```bash
-kubeadm reset -f
+### Reset the node
+kubeadm reset -f --cri-socket unix:///var/run/containerd/containerd.sock
 rm -rf $HOME/.kube/config
+
 ### CNI conflist will be re-created by CNI installation.
 rm -rf /etc/cni/net.d
 
