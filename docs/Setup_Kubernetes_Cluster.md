@@ -291,6 +291,16 @@ enable-ipsec                               true
 ipsec-key-file                             /etc/ipsec/keys
 ```
 
+#### Enable [Hubble Observability](https://github.com/cilium/hubble/)
+
+Cilium also provides the observability component for gaining deep insights into the network and security behavior of your applications.
+This also works with ROS and ROS 2 application containers.
+Hubble collects network flow data using eBPF and processes it to generate valuable insights, this data can be visualized and analyzed through the Hubble UI or using the Hubble CLI.
+
+We can just follow [Service Map & Hubble UI](https://docs.cilium.io/en/latest/gettingstarted/hubble/#hubble-ui) procedure to enable Hubble and the following graphical interface will come up.
+
+![Hubble GUI with ROS 2 application](./../images/ros2_hubble_observability.png)
+
 #### Enable Multicast (W.I.P)
 
 > [!NOTE]
