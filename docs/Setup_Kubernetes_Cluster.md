@@ -418,6 +418,27 @@ This problem is issued on https://github.com/weaveworks/weave/issues/3976, and a
 > kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
 ```
 
+#### [WeaveScope](https://github.com/weaveworks/scope) **(E.O.L)**
+
+Weave also provides a powerful visualization and monitoring tool specifically designed for Docker and Kubernetes environments called scope.
+
+```bash
+### Install
+> kubectl apply -f https://github.com/weaveworks/scope/releases/download/v1.13.2/k8s-scope.yaml
+### Uninstall
+> kubectl delete -f https://github.com/weaveworks/scope/releases/download/v1.13.2/k8s-scope.yaml
+```
+
+By default, weavescope uses Cluster IP address, so we need to `port-forward` it to the node IP address and port.
+
+```bash
+> kubectl port-forward svc/weave-scope-app -n weave 4040:80 --address YOUR_NODE_IP
+```
+
+and then, you should see the following UI via `http://<YOUR_NODE_IP>:4040/`
+
+![WeaveScope Web UI](./../images/weavescope.png)
+
 #### Security Encryption
 
 WeaveNet provides authentication and encryption based on password, which is used for create session keys for the communication between peers.
