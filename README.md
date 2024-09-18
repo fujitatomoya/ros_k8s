@@ -37,8 +37,8 @@ This will set up Kubernetes cluster on host system as followings.
 
 | Hostname | IP Address | OS | architecture |
 | --- | --- | --- | --- |
-| tomoyafujita | 192.168.1.248 | Ubuntu 22.04 (Ubuntu 20.04) | amd64 |
-| ubuntu | 192.168.1.79 | Ubuntu 20.04 | aarch64 (Raspberry Pi4) |
+| tomoyafujita | 192.168.1.248 | Ubuntu Focal/Jammy | amd64 |
+| ubuntu | 192.168.1.79 | Ubuntu Focal/Jammy | aarch64 (Raspberry Pi4) |
 
 - Virtualized Instance
 

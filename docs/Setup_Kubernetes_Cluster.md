@@ -5,8 +5,8 @@ Following host systems are used to set up Kubernetes Cluster as example, the hos
 
 | Hostname | IP Address | OS | architecture | Node Type |
 | --- | --- | --- | --- | --- |
-| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu 20.04.5 LTS | x86_64 | Primary(Master) |
-| ubuntu | 192.168.1.79 | Ubuntu 20.04.5 LTS | aarch64 | Worker(Slave) |
+| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu Focal/Jammy | x86_64 | Primary(Master) |
+| ubuntu | 192.168.1.79 | Ubuntu Focal/Jammy | aarch64 | Worker(Slave) |
 
 ## Reference
 

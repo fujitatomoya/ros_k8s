@@ -5,6 +5,7 @@
 set -e
 
 ### User Setting
+# TODO(@fujitatomoya) add KubeEdge installation
 KUBERNETES_VERSION=v1.26
 
 ### Confirmation to install all dependent packages

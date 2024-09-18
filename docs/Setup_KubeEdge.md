@@ -14,14 +14,7 @@ Kubernetes worker nodes are transparent, so that the same operation can be appli
 
 ## Kubernetes Compatibility
 
-**<span style="color: red;">CAUTION</span>**
-
-According to the [KubeEdge Kubernetes Compatibility](https://github.com/kubeedge/kubeedge#kubernetes-compatibility), `v1.25.13` is not officially supported yet.
-For using KubeEdge, we need to downgrade Kubernetes to `v1.23.17` as following.
-
-```bash
-> apt install -y --allow-downgrades kubeadm=1.23.17-00 kubelet=1.23.17-00 kubectl=1.23.17-00
-```
+KubeEdge depends on the Kubernetes version, see more details for [KubeEdge Kubernetes Compatibility](https://github.com/kubeedge/kubeedge#kubernetes-compatibility).
 
 ## Container Network Interface (CNI)
 
@@ -29,11 +22,9 @@ Although [KubeEdge Roadmap](https://github.com/kubeedge/kubeedge/blob/master/doc
 
 Please see more details for,
 - [KubeEdge didn't support Weave CNI](https://github.com/kubeedge/kubeedge/issues/3935)
-- [KubeEdge edgecore supports CNI Cilium](https://github.com/kubeedge/kubeedge/issues/4844)
+- [KubeEdge edgecore supports CNI Cilium](https://github.com/kubeedge/kubeedge/issues/4844) and [KubeEdge meets Cilium](https://kubeedge.io/blog/enable-cilium/)
 
-At this moment, we user host network interface only.
-
-KubeEdge community has been developing [edgemesh](https://github.com/kubeedge/edgemesh) for next-generation data-plane component, including the support as CNI.
+KubeEdge community also has been developing [edgemesh](https://github.com/kubeedge/edgemesh) for next-generation data-plane component, including the support as CNI.
 
 ## Setup Kubernetes API Server
 
@@ -49,55 +40,39 @@ see [Deploy CNI Plugin](https://github.com/fujitatomoya/ros_k8s/blob/master/docs
 **<span style="color: red;">TODO: CNI needs to be uninstalled</span>**
 
 This is only required to bring the Kubenretes API-server running, because we are going to deploy cloudcore to the same physical node with Kubernetes API-server.
-Instead of having CNI deployed to bring the Kubernetes API-server up and runnig, we are not able to deploy cloudcore to the node since we cannot deploy the containers to any `NotReady` nodes.
+Instead of having CNI deployed to bring the Kubernetes API-server up and running, we are not able to deploy cloudcore to the node since we cannot deploy the containers to any `NotReady` nodes.
 
 ## Setup KubeEdge
 
+see more details for https://kubeedge.io/docs/setup/install-with-keadm/
+
 ### Install keadm
 
-- KubeEdge Cloud Core Node (amd64)
+`keadm` needs to be installed in both cloud and edge nodes.
 
 ```bash
-> wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-amd64.tar.gz
-> tar -zxvf keadm-v1.14.2-linux-amd64.tar.gz
-keadm-v1.14.2-linux-amd64/
-keadm-v1.14.2-linux-amd64/version
-keadm-v1.14.2-linux-amd64/keadm/
-keadm-v1.14.2-linux-amd64/keadm/keadm
-> cp keadm-v1.14.2-linux-amd64/keadm//keadm /usr/local/bin/keadm
+> wget https://github.com/kubeedge/kubeedge/releases/download/v1.16.3/keadm-v1.16.3-linux-amd64.tar.gz
+> tar -zxvf keadm-v1.16.3-linux-amd64.tar.gz
+> cp keadm-v1.16.3-linux-amd64/keadm//keadm /usr/local/bin/keadm
 > keadm version
-version: version.Info{Major:"1", Minor:"14", GitVersion:"v1.14.2", GitCommit:"5036064115fad46232dee1c8ad5f1f84fde7984b", GitTreeState:"clean", BuildDate:"2023-09-04T01:54:06Z", GoVersion:"go1.17.13", Compiler:"gc", Platform:"linux/amd64"}
-```
-
-- KubeEdge Edge Node (arm64)
-
-```bash
-> wget https://github.com/kubeedge/kubeedge/releases/download/v1.14.2/keadm-v1.14.2-linux-arm64.tar.gz
-> tar -zxvf keadm-v1.14.2-linux-arm64.tar.gz 
-keadm-v1.14.2-linux-arm64/
-keadm-v1.14.2-linux-arm64/version
-keadm-v1.14.2-linux-arm64/keadm/
-keadm-v1.14.2-linux-arm64/keadm/keadm
-> cp keadm-v1.14.2-linux-arm64/keadm/keadm /usr/local/bin/keadm
-> keadm version
-version: version.Info{Major:"1", Minor:"14", GitVersion:"v1.14.2", GitCommit:"5036064115fad46232dee1c8ad5f1f84fde7984b", GitTreeState:"clean", BuildDate:"2023-09-04T01:54:04Z", GoVersion:"go1.17.13", Compiler:"gc", Platform:"linux/arm64"}
+version: version.Info{Major:"1", Minor:"16", GitVersion:"v1.16.3", GitCommit:"4f1da43e6807c127e549e5d4859ed1b66c6f5806", GitTreeState:"clean", BuildDate:"2024-07-12T03:02:51Z", GoVersion:"go1.20.10", Compiler:"gc", Platform:"linux/amd64"}
 ```
 
 ### Cloud Core
 
-- with the configuration, we will deploy the KubeEdge `cloudcore` to Kubernetes master node. Basically master node has the taints not to schedule the pods to keep the system resource for Kubenretes. So we need to remove that taint so that we can deploy the `cloudcore` pods to the mater node. (if this operation is not done, `keadm init` will fail with `Error: timed out waiting for the condition`)
+- with the configuration, we will deploy the KubeEdge `cloudcore` to Kubernetes master node. Basically master node has the taints not to schedule the pods to keep the system resource for Kubernetes. So we need to remove that taint so that we can deploy the `cloudcore` pods to the mater node. (if this operation is not done, `keadm init` will fail with `Error: timed out waiting for the condition`)
 
 ```bash
 > kubectl get nodes -o json | jq '.items[].spec.taints'
 [
   {
     "effect": "NoSchedule",
-    "key": "node-role.kubernetes.io/master"
+    "key": "node-role.kubernetes.io/control-plane"
   }
 ]
 
-> kubectl taint nodes tomoyafujita-hp-compaq-elite-8300-sff node-role.kubernetes.io/master:NoSchedule-
-node/tomoyafujita-hp-compaq-elite-8300-sff untainted
+> kubectl taint nodes tomoyafujita node-role.kubernetes.io/control-plane:NoSchedule-
+node/tomoyafujita untainted
 
 > kubectl get nodes -o json | jq '.items[].spec.taints'
 null
@@ -106,12 +81,12 @@ null
 - start KubeEdge `cloudcore`.
 
 ```bash
-> keadm init --advertise-address=192.168.1.248 --profile version=v1.12.1
+> keadm init --advertise-address=192.168.1.248 --kube-config=/root/.kube/config --kubeedge-version=v1.16.3
 Kubernetes version verification passed, KubeEdge installation will start...
 CLOUDCORE started
 =========CHART DETAILS=======
 NAME: cloudcore
-LAST DEPLOYED: Thu Sep 14 22:09:35 2023
+LAST DEPLOYED: Wed Sep 18 14:56:13 2024
 NAMESPACE: kubeedge
 STATUS: deployed
 REVISION: 1
@@ -129,8 +104,6 @@ replicaset.apps/cloudcore-77b5dfdd57   1         1         1       24s
 
 ### Edge Core
 
-KubeEdge can be uninstalled via the following commands.
-
 - get security token from cloudcore.
 
 ```bash
@@ -141,7 +114,7 @@ KubeEdge can be uninstalled via the following commands.
 - start KubeEdge `edgecore`
 
 ```bash
-> keadm join --cloudcore-ipport=192.168.1.248:10000 --token=40d9bb8bb2c3818728da3d46f1a78b58f4b9fba8665cc392ded4698d1eb5cab1.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQ4NDA5ODN9.niGZHHdR7s89K4-919fCNKEVTyudb8DtTmE9p5PFzKg --kubeedge-version=v1.12.1 --runtimetype=docker --cgroupdriver systemd
+> keadm join --cloudcore-ipport=192.168.1.248:10000 --token=40d9bb8bb2c3818728da3d46f1a78b58f4b9fba8665cc392ded4698d1eb5cab1.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQ4NDA5ODN9.niGZHHdR7s89K4-919fCNKEVTyudb8DtTmE9p5PFzKg --kubeedge-version=v1.16.3 --remote-runtime-endpoint=unix:///run/containerd/containerd.sock --cgroupdriver systemd
 I0915 06:28:19.544584   10424 command.go:845] 1. Check KubeEdge edgecore process status
 I0915 06:28:19.578838   10424 command.go:845] 2. Check if the management directory is clean
 I0915 06:28:19.579238   10424 join.go:107] 3. Create the necessary directories
@@ -197,11 +170,7 @@ ros2-talker-1-bdd899d8d-drt2f      1/1     Running   0          14m   192.168.1.
 ## Break Down KubeEdge
 
 ```bash
-> keadm reset --force
-I0915 00:26:18.977824  114454 util_unix.go:104] "Using this format as endpoint is deprecated, please consider using full url format." deprecatedFormat="" fullURLFormat="unix://"
-Failed to remove MQTT container: failed to new container runtime: unable to determine image API version: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial unix: missing address"
 > \rm -rf /etc/kubeedge/*
-> kubeadm reset --force
+> kubeadm deprecated reset --force
 [reset] Reading configuration from the cluster...
-> \rm -rf $HOME/.kube/config
 ```

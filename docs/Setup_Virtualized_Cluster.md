@@ -5,7 +5,7 @@ Following host system is used to set up virtualized Kubernetes cluster, the host
 
 | Hostname | IP Address | OS | architecture | Node Type |
 | --- | --- | --- | --- | --- |
-| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu 20.04.5 LTS | x86_64 | Primary(Master) |
+| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu Focal/Jammy | x86_64 | Primary(Master) |
 
 ## Reference
 
