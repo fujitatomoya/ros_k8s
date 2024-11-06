@@ -370,6 +370,29 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   cilium-dbg bpf multicast subscriber list all
   ```
 
+  These `cilium-dbg` commands are available in the cilium-cli version 1.16.0 or later.
+
+- Simplified configuration about Multicast Groups and Subscribers using Cilium CLI
+
+  If it's a cluster-wide operation, there's no need to perform operations on each cilium pod individually.
+  This feature is available in the cilium-cli version 0.16.14 or later.
+
+  To make all nodes join a specified multicast group, use the `cilium multicast` command. 
+  ```bash
+  # make all nodes join the specified multicast group
+  > cilium multicast add --group-ip 239.255.0.1
+  #cilium multicast delete --group-ip 239.255.0.1
+  ```
+
+  You can also get information about multicast groups and subscribers cluster-wide.
+  ```bash
+  # confirm the multicast groups and subscribers
+  > cilium multicast list subscriber --all
+  Node                 Group         Subscriber     Type
+  kind-worker          239.255.0.1   10.244.0.196   Remote Node
+  kind-control-plane   239.255.0.1   10.244.1.122   Remote Node
+  ```
+
 - Related PRs
   - Issues
     - https://github.com/cilium/cilium/issues/13239, https://github.com/cilium/cilium/issues/28750
