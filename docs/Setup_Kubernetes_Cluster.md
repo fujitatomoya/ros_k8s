@@ -370,7 +370,7 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   cilium-dbg bpf multicast subscriber list all
   ```
 
-  These `cilium-dbg` commands are available in the cilium-cli version 1.16.0 or later.
+  These `cilium-dbg` commands are available in the cilium version 1.16.0 or later.
 
 - Simplified configuration about Multicast Groups and Subscribers using Cilium CLI
 
