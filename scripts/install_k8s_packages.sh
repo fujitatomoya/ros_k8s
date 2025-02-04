@@ -6,12 +6,12 @@ set -e
 
 ### User Setting
 # TODO(@fujitatomoya) add KubeEdge installation
-KUBERNETES_VERSION=v1.26
+KUBERNETES_VERSION=v1.29
 
 ### Confirmation to install all dependent packages
 
 echo "-------------------------------------------------------------------"
-echo "This will reinstall the all depedent packages, including removing installed pacakges."
+echo "This will reinstall the all dependent packages, including removing installed packages."
 echo "golang, containerd, docker and kubernetes related packages will be reinstalled with specific version."
 echo "*** Basically this needs to be done only once for each system ***"
 echo "-------------------------------------------------------------------"
@@ -86,7 +86,7 @@ function install_golang () {
 
 function install_kind () {
 	trap exit_trap ERR
-	go install sigs.k8s.io/kind@v0.19.0
+	go install sigs.k8s.io/kind@v0.26.0
 	### kind needs to be in path
 	$HOME/go/bin/kind version
 }

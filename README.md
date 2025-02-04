@@ -32,13 +32,11 @@ We can use either `Physical Host System` or `Virtualized Instance`.
 
 - Host System
 
-This is practical environment for robot and robotics in general.
-This will set up Kubernetes cluster on host system as followings.
+This is practical environment for robot and robotics application in general.
+This will set up Kubernetes cluster on the following verified host systems.
 
-| Hostname | IP Address | OS | architecture |
-| --- | --- | --- | --- |
-| tomoyafujita | 192.168.1.248 | Ubuntu Focal/Jammy | amd64 |
-| ubuntu | 192.168.1.79 | Ubuntu Focal/Jammy | aarch64 (Raspberry Pi4) |
+  - Ubuntu: Focal/Jammy/Noble
+  - Architecture: amd64/aarch64(Raspberry Pi4)
 
 - Virtualized Instance
 
@@ -52,7 +50,7 @@ This environment is very much useful to try or test your container images or ser
 - [Build ROS / ROS 2 Full Docker Multi-Arch Images](./docs/Build_Docker_Images.md)
   - [ROS Noetic Container Build](./docs//Build_Docker_Images.md#ros-noetic)
   - [ROS Rolling Container Build](./docs//Build_Docker_Images.md#ros-rolling)
-- [Setup Kuberenetes Cluster](./docs/Setup_Kubernetes_Cluster.md)
+- [Setup Kubernetes Cluster](./docs/Setup_Kubernetes_Cluster.md)
   - [Container Network Interface (CNI)](./docs/Setup_Kubernetes_Cluster.md#container-network-interface-cni)
   - [Setup Kubernetes API Server](./docs/Setup_Kubernetes_Cluster.md#setup-kubernetes-api-server)
   - [Join Cluster from Worker Node](./docs/Setup_Kubernetes_Cluster.md#join-the-cluster)

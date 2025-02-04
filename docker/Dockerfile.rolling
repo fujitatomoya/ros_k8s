@@ -5,7 +5,9 @@
 #  docker pull <user_name>/ros-rolling
 
 FROM ros:rolling
+
 ENV ROS_DISTRO=rolling
+
 LABEL maintainer="Tomoya Fujita <tomoya.fujita825@gmail.com>"
 LABEL version="1.0"
 LABEL description="ROS rolling docker full image build"
