@@ -1,11 +1,6 @@
 # Setup Virtualized Kubernetes Cluster
 
 In this section, it describes how to set up virtual Kubernetes cluster using single physical host system.
-Following host system is used to set up virtualized Kubernetes cluster, the hostname and IP addresses need to be aligned with your environment.
-
-| Hostname | IP Address | OS | architecture | Node Type |
-| --- | --- | --- | --- | --- |
-| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu Focal/Jammy | x86_64 | Primary(Master) |
 
 ## Reference
 

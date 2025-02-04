@@ -1,12 +1,6 @@
 # Setup Kubernetes Cluster
 
 In this section, it describes how to set up Kubernetes Cluster using physical host systems.
-Following host systems are used to set up Kubernetes Cluster as example, the hostname and IP addresses need to be aligned with your environment.
-
-| Hostname | IP Address | OS | architecture | Node Type |
-| --- | --- | --- | --- | --- |
-| tomoyafujita-HP-Compaq-Elite-8300-SFF | 192.168.1.248 | Ubuntu Focal/Jammy | x86_64 | Primary(Master) |
-| ubuntu | 192.168.1.79 | Ubuntu Focal/Jammy | aarch64 | Worker(Slave) |
 
 ## Reference
 
@@ -18,7 +12,7 @@ Following host systems are used to set up Kubernetes Cluster as example, the hos
 ## Container Network Interface (CNI)
 
 Before establish Kubernetes Cluster, there is important component to understand, which is Container Network Interface (CNI).
-This is really important for ROS with Kubernetes use case since CNI is the network interface to ROS application in container uses.
+This is really important for ROS with Kubernetes use case since CNI is the network interface to ROS application container uses.
 If inappropriate CNI plugin is bound to ROS application container, sometimes it fails to communicate via ROS network especially ROS 2 / DDS that uses **multicast** to endpoint discovery.
 
 ![Kubernetes CNI flannel example](./../images/K8s-CNI-diagram01.png)
@@ -26,9 +20,7 @@ If inappropriate CNI plugin is bound to ROS application container, sometimes it 
 The above diagram shows that one of the CNI implementation called `flannel` to provide overlay network to application containers.
 Using CNI plugin underneath, container runtime adds the interface to the container namespace via a call to the CNI plugin and allocates the connected subnetwork routes via calls to the IP Address Management (IPAM) plugin.
 
-Here it does not explain details about CNI but the point is CNI needs to be well considered based on your use case or application requirements since CNI is the network interface backend for application containers.
-In this repository, we use [WeaveNet](https://github.com/weaveworks/weave) as CNI plugin for Kubernetes Cluster.
-[WeaveNet](https://github.com/weaveworks/weave) supports 100% layer 2 emulation network, that also supports multicast used by DDS / ROS 2 most likely, this work just out-of-the-box experience to get started.
+Here it does not explain details about CNI but CNI needs to be well considered based on your use case or application requirements since CNI is the network interface backend for application containers.
 
 ## Setup Kubernetes API Server
 
@@ -48,7 +40,7 @@ In this repository, we use [WeaveNet](https://github.com/weaveworks/weave) as CN
 
 ### Make sure kubeadm is installed to start the cluster
 > kubeadm version
-kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitCommit:"804d6167111f6858541cef440ccc53887fbbc96a", GitTreeState:"clean", BuildDate:"2022-12-08T10:13:29Z", GoVersion:"go1.19.4", Compiler:"gc", Platform:"linux/amd64"}
+kubeadm version: &version.Info{Major:"1", Minor:"29", GitVersion:"v1.29.13", GitCommit:"9a58e9398d4aa69d7ad40f40407e54b96025e0c5", GitTreeState:"clean", BuildDate:"2025-01-15T14:41:15Z", GoVersion:"go1.22.10", Compiler:"gc", Platform:"linux/amd64"}
 
 ### Set container runtime cgroup driver aligned with Kubernetes
 ### See https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
@@ -62,13 +54,14 @@ kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitC
 
 ### Initialize master node, it might take a few minutes to complete
 > kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock
-I0116 15:51:52.208739    7616 version.go:256] remote version is much newer: v1.26.0; falling back to: stable-1.25
-[init] Using Kubernetes version: v1.25.5
+init] Using Kubernetes version: v1.29.13
 [preflight] Running pre-flight checks
 [preflight] Pulling images required for setting up a Kubernetes cluster
 [preflight] This might take a minute or two, depending on the speed of your internet connection
-[preflight] You can also perform this action in beforehand using 'kubeadm config images pu
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
 ...<snip>
+Your Kubernetes control-plane has initialized successfully!
+
 To start using your cluster, you need to run the following as a regular user:
 
   mkdir -p $HOME/.kube
@@ -85,8 +78,7 @@ Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
 
 Then you can join any number of worker nodes by running the following on each as root:
 
-kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
-	--discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241 
+kubeadm join <YOUR_IP_ADDRESS>:6443 --token <YOUR_TOKEN> --discovery-token-ca-cert-hash <YOUR_HASH> 
 ```
 
 ***make sure you save the last line that shows how to join the cluster from worker nodes with tokens and CA hash.***
@@ -96,23 +88,24 @@ kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul \
 Make sure that we can access Kubernetes API server w/o any problems.
 
 ```bash
+### save the configuration
 > mkdir -p $HOME/.kube
 > cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 > chown $(id -u):$(id -g) $HOME/.kube/config
 
+### check node status
 > kubectl get nodes -o wide
-NAME                                    STATUS     ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-tomoyafujita-hp-compaq-elite-8300-sff   NotReady   control-plane   51s   v1.25.5   192.168.1.248   <none>        Ubuntu 20.04.5 LTS   5.15.0-58-generic   containerd://1.5.9
 
+### check pods status
 > kubectl get pods -A
-NAMESPACE     NAME                                                            READY   STATUS    RESTARTS        AGE
-kube-system   coredns-565d847f94-qglk9                                        0/1     Pending   0               46s
-kube-system   coredns-565d847f94-qjprq                                        0/1     Pending   0               46s
-kube-system   etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running   1 (2m47s ago)   53s
-kube-system   kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running   1 (2m47s ago)   53s
-kube-system   kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running   2 (8m27s ago)   52s
-kube-system   kube-proxy-bkm5t                                                1/1     Running   0               46s
-kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running   2 (8m23s ago)   51s
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE
+kube-system   coredns-76f75df574-75r5m               0/1     Pending   0          4m3s
+kube-system   coredns-76f75df574-hcqgr               0/1     Pending   0          4m3s
+kube-system   etcd-tomoyafujita                      1/1     Running   4          4m16s
+kube-system   kube-apiserver-tomoyafujita            1/1     Running   0          4m16s
+kube-system   kube-controller-manager-tomoyafujita   1/1     Running   0          4m17s
+kube-system   kube-proxy-6bd64                       1/1     Running   0          4m3s
+kube-system   kube-scheduler-tomoyafujita            1/1     Running   0          4m16s
 ```
 
 ## Worker Node Join
@@ -129,7 +122,7 @@ We need to do this procedure for all worker nodes to join the cluster system.
  Cgroup Version: 2
 
 > kubeadm version
-kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitCommit:"804d6167111f6858541cef440ccc53887fbbc96a", GitTreeState:"clean", BuildDate:"2022-12-08T10:13:29Z", GoVersion:"go1.19.4", Compiler:"gc", Platform:"linux/arm64"}
+kubeadm version: &version.Info{Major:"1", Minor:"29", GitVersion:"v1.29.13", GitCommit:"9a58e9398d4aa69d7ad40f40407e54b96025e0c5", GitTreeState:"clean", BuildDate:"2025-01-15T14:41:15Z", GoVersion:"go1.22.10", Compiler:"gc", Platform:"linux/amd64"}
 
 > cat /etc/docker/daemon.json
 {
@@ -137,7 +130,7 @@ kubeadm version: &version.Info{Major:"1", Minor:"25", GitVersion:"v1.25.5", GitC
 }
 
 > systemctl restart docker
-> kubeadm join 192.168.1.248:6443 --token ky8sgg.4o1yb4hijewmqmul --discovery-token-ca-cert-hash sha256:7bc2e77bcb7cbaf78d5d669e8a52935630e35cd040117ae38afd24a26a8bf241 --cri-socket unix:///var/run/containerd/containerd.sock
+> kubeadm join <YOUR_IP_ADDRESS>:6443 --token <YOUR_TOKEN> --discovery-token-ca-cert-hash <YOUR_HASH>  --cri-socket unix:///var/run/containerd/containerd.sock
 [preflight] Running pre-flight checks
 [preflight] Reading configuration from the cluster...
 [preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
@@ -156,10 +149,8 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 Check the node availability on master node.
 
 ```bash
+### check node status
 > kubectl get nodes -o wide
-NAME                                    STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   6m21s   v1.25.5   192.168.1.248   <none>        Ubuntu 20.04.5 LTS   5.15.0-58-generic   containerd://1.5.9
-ubuntu                                  Ready    <none>          14s     v1.25.5   192.168.1.79    <none>        Ubuntu 20.04.5 LTS   5.4.0-1078-raspi    containerd://1.5.9
 ```
 
 ## Deploy CNI plugin
@@ -181,18 +172,7 @@ The Cilium CLI can be used to install Cilium, inspect the state of a Cilium inst
 [sudo] password for tomoyafujita:
 > cd <repo>/scripts
 > ./install_cilium_cli.sh
-Cilium CLI version is v0.12.12
-CPU architecture is amd64
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100 25.4M  100 25.4M    0     0  10.2M      0  0:00:02  0:00:02 --:--:-- 14.5M
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100    92  100    92    0     0    245      0 --:--:-- --:--:-- --:--:--   245
-cilium-linux-amd64.tar.gz: OK
-cilium
+...<snip>
 Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
 ```
 
@@ -200,50 +180,15 @@ Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can jus
 
 ```bash
 > cilium version
-cilium-cli: v0.12.12 compiled with go1.19.4 on linux/amd64
-cilium image (default): v1.12.5
-cilium image (stable): v1.12.5
-cilium image (running): unknown. Unable to obtain cilium version, no cilium pods found in namespace "kube-system"
+cilium-cli: v0.16.24 compiled with go1.23.4 on linux/amd64
+cilium image (default): v1.16.6
+cilium image (stable): v1.16.6
+cilium image (running): unknown. Unable to obtain cilium version. Reason: release: not found
 
 > cilium install
-ℹ️  Using Cilium version 1.12.5
+  Using Cilium version 1.16.6
 🔮 Auto-detected cluster name: kubernetes
-🔮 Auto-detected datapath mode: tunnel
 🔮 Auto-detected kube-proxy has been installed
-ℹ️  helm template --namespace kube-system cilium cilium/cilium --version 1.12.5 --set cluster.id=0,cluster.name=kubernetes,encryption.nodeEncryption=false,kubeProxyReplacement=disabled,operator.replicas=1,serviceAccounts.cilium.name=cilium,serviceAccounts.operator.name=cilium-operator,tunnel=vxlan
-ℹ️  Storing helm values file in kube-system/cilium-cli-helm-values Secret
-🔑 Created CA in secret cilium-ca
-🔑 Generating certificates for Hubble...
-🚀 Creating Service accounts...
-🚀 Creating Cluster roles...
-🚀 Creating ConfigMap for Cilium version 1.12.5...
-🚀 Creating Agent DaemonSet...
-🚀 Creating Operator Deployment...
-⌛ Waiting for Cilium to be installed and ready...
-♻️  Restarting unmanaged pods...
-♻️  Restarted unmanaged pod kube-system/coredns-565d847f94-sn4ht
-✅ Cilium was successfully installed! Run 'cilium status' to view installation health
-
-> cilium status
-    /¯¯\
-/¯¯\__/¯¯\    Cilium:         OK
-\__/¯¯\__/    Operator:       OK
-/¯¯\__/¯¯\    Hubble:         disabled
-\__/¯¯\__/    ClusterMesh:    disabled
-    \__/
-
-Deployment        cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
-DaemonSet         cilium             Desired: 2, Ready: 2/2, Available: 2/2
-Containers:       cilium             Running: 2
-                  cilium-operator    Running: 1
-Cluster Pods:     2/3 managed by Cilium
-Image versions    cilium             quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5: 2
-                  cilium-operator    quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e: 1
-
-> kubectl get pods -A | grep cilium
-kube-system   cilium-operator-74b8595d7b-v6j42                                1/1     Running   0          3m43s
-kube-system   cilium-pbntp                                                    1/1     Running   0          3m43s
-kube-system   cilium-qxbd9                                                    1/1     Running   0          3m43s
 ```
 
 #### Enable Security Encryption
@@ -301,7 +246,7 @@ We can just follow [Service Map & Hubble UI](https://docs.cilium.io/en/latest/ge
 
 ![Hubble GUI with ROS 2 application](./../images/ros2_hubble_observability.png)
 
-#### Enable Multicast (W.I.P)
+#### Enable Multicast
 
 > [!NOTE]
 > Currently multicast feature is only available in [cilium:main](https://github.com/cilium/cilium/tree/main) branch, still under development.
@@ -328,7 +273,7 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   ♻️  Restarted Cilium pods
   ```
 
-- Configure Multicast Group IP addresses and Subscribers
+- Configure Multicast Group IP addresses and Subscribers (Manually)
 
   To use multicast with Cilium, we need to configure multicast group and subscriber IP addresses based on the application requirement.
   ROS 2 (DDS) well-known multicast group IP address is `239.255.0.1`.
@@ -375,7 +320,7 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
 - Simplified configuration about Multicast Groups and Subscribers using Cilium CLI
 
   If it's a cluster-wide operation, there's no need to perform operations on each cilium pod individually.
-  This feature is available in the cilium-cli version 0.16.14 or later.
+  This feature is available in the cilium-cli version `0.16.14` or later.
 
   To make all nodes join a specified multicast group, use the `cilium multicast` command. 
   ```bash
@@ -396,7 +341,6 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
 - Related PRs
   - Issues
     - https://github.com/cilium/cilium/issues/13239, https://github.com/cilium/cilium/issues/28750
-    - https://github.com/cilium/cilium/issues/29470 (Multicast Network Policy Support, tracking issue)
     - https://github.com/cilium/cilium/issues/29471 (Multicast IPSec Support, tracking issue)
   - Design CFP
     - https://github.com/cilium/design-cfps/pull/20

@@ -5,7 +5,9 @@
 #  docker pull <user_name>/ros-noetic
 
 FROM ros:noetic
+
 ENV ROS_DISTRO=noetic
+
 LABEL maintainer="Tomoya Fujita <tomoya.fujita825@gmail.com>"
 LABEL version="1.0"
 LABEL description="ROS noetic docker full image build"
