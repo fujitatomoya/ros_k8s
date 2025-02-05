@@ -3,15 +3,17 @@ name: build-docker-images
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "main" ]
     # Only kick workflow if docker files are changed
     paths:
       - 'docker/**'
+      - '.github/workflows/**'
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "main" ]
     # Only kick workflow if docker files are changed
     paths:
       - 'docker/**'
+      - '.github/workflows/**'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
