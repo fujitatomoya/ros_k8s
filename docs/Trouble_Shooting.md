@@ -140,6 +140,20 @@ nameserver zz.zz.zz.zz
 KUBELET_EXTRA_ARGS=--resolv-conf=/etc/resolv-static.conf
 ```
 
+### Container runtime network not ready
+
+if you see the following error when initializing kubernetes nodes, that could be related to [Container runtime network not ready: cni config uninitialized](https://stackoverflow.com/questions/49112336/container-runtime-network-not-ready-cni-config-uninitialized).
+
+```bash
+Container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:docker: network plugin is not ready: cni config uninitialized
+```
+
+please restart the `containerd.service` and retry.
+
+```bash
+systemctl restart containerd.service
+```
+
 ### CNI plugins for KIND
 
 if using kind `v0.19.0` or earlier, it would be required to install CNI plugins in the host system and bind them into kind images.
