@@ -59,7 +59,7 @@ This environment is very much useful to try or test your container images or ser
 - [Setup KubeEdge Cloud/Edge Node](./docs/Setup_KubeEdge.md)
   - [Setup Kubernetes API server](./docs/Setup_KubeEdge.md#setup-kubernetes-api-server)
   - [Setup KubeEdge Cloudcore and Edgecore](./docs/Setup_KubeEdge.md#setup-kubeedge)
-- [Setup Virtualized Kuberenetes Cluster](./docs/Setup_Virtualized_Cluster.md)
+- [Setup Virtualized Kubernetes Cluster](./docs/Setup_Virtualized_Cluster.md)
   - [What is Kubernetes IN Docker](./docs/Setup_Virtualized_Cluster.md#kubernetes-in-docker)
   - [Single Node Cluster Setup](./docs/Setup_Virtualized_Cluster.md#single-node-cluster-setup)
   - [Multiple Nodes Cluster Setup](./docs/Setup_Virtualized_Cluster.md#multiple-node-cluster-setup)

@@ -30,7 +30,7 @@ Here it does not explain details about CNI but CNI needs to be well considered b
 ### Be super user access
 > sudo su -
 
-### Make sure that swap is diabled
+### Make sure that swap is disabled
 >  swapoff -a
 
 ### Cgroup for docker is set into systemd

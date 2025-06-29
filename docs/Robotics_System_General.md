@@ -24,7 +24,7 @@ The following example is based on BCM2835 Raspberry Pi 4 Model B Rev 1.4 as edge
 - How to check the capacity and allocatable resource on node
 
   As we can see below, `kubelet` explains the resource capacity and allocatable for each node running in the cluster system.
-  This example says, kubenretes can allocate the all resources on that node without any limitation.
+  This example says, kubernetes can allocate the all resources on that node without any limitation.
 
 ```bash
 > kubectl describe node ubuntu
