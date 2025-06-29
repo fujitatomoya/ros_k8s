@@ -169,7 +169,7 @@ The main difference that this tutorial has is to bind `Host Network Interface` t
 
 - Add labeling to cluster nodes.
 
-To target the containers to specific nodes, it also adds the lable to each node, which also used in the above yaml file.
+To target the containers to specific nodes, it also adds the label to each node, which also used in the above yaml file.
 
 ```bash
 ### Show labels

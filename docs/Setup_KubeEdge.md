@@ -37,7 +37,7 @@ see [Setup Kubernetes API Server](./Setup_Kubernetes_Cluster.md#setup-kubernetes
 In Kubernetes workloads, it requires one of CNI implementation running to set up the cluster.
 see [Deploy CNI Plugin](https://github.com/fujitatomoya/ros_k8s/blob/master/docs/Setup_Kubernetes_Cluster.md#deploy-cni-plugin) to start the CNI for Kubernetes. (this CNI can only be used by Kubernetes worker nodes but KubeEdge.)
 
-This is only required to bring the Kubenretes API-server running, because we are going to deploy cloudcore to the same physical node with Kubernetes API-server.
+This is only required to bring the Kubernetes API-server running, because we are going to deploy cloudcore to the same physical node with Kubernetes API-server.
 Instead of having CNI deployed to bring the Kubernetes API-server up and running, we are not able to deploy cloudcore to the node since we cannot deploy the containers to any `NotReady` nodes.
 
 ## Setup KubeEdge
@@ -58,7 +58,7 @@ version: version.Info{Major:"1", Minor:"19", GitVersion:"v1.19.1", GitCommit:"e6
 
 ### Cloud Core
 
-- with the configuration, we will deploy the KubeEdge `cloudcore` to Kubernetes master node. Basically master node has the taints not to schedule the pods to keep the system resource for Kubernetes. So we need to remove that taint so that we can deploy the `cloudcore` pods to the mater node. (if this operation is not done, `keadm init` will fail with `Error: timed out waiting for the condition`)
+- with the configuration, we will deploy the KubeEdge `cloudcore` to Kubernetes master node. Basically master node has the taints not to schedule the pods to keep the system resource for Kubernetes. So we need to remove that taint so that we can deploy the `cloudcore` pods to the master node. (if this operation is not done, `keadm init` will fail with `Error: timed out waiting for the condition`)
 
 ```bash
 > kubectl get nodes -o json | jq '.items[].spec.taints'

@@ -60,7 +60,7 @@ docker version
 
 ## Kubernetes
 
-In this tutorial, we use Kuberentes `v1.29.x-xx` in default.
+In this tutorial, we use Kubernetes `v1.29.x-xx` in default.
 
 ### Kubernetes Install
 

@@ -103,7 +103,7 @@ shift $((OPTIND-1))
 echo "Check Docker Environment ----------"
 check_dockerhub_setting
 
-echo "Buiding Container Images ----------"
+echo "Building Container Images ----------"
 build_images
 
 if [ "$build_manifest" == true ]; then

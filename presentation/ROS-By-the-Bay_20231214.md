@@ -157,7 +157,7 @@ Sony R&D US Laboratory
 
 ---
 
-# Check Kuberntes Cluster
+# Check Kubernetes Cluster
 
 <!---
 ### I NEED TO SETUP EVERYTHING BEFORE DOWNLOADING IMAGES TAKE REALLY LONG TIME ###
