@@ -59,5 +59,3 @@ jobs:
           operations-per-run: 100
           ascending: true
           remove-stale-when-updated: true
-          remove-issue-stale-when-updated: true
-          remove-pr-stale-when-updated: true
