@@ -22,10 +22,10 @@ jobs:
           days-before-close: 60
           
           # Labels
-          stale-issue-label: 'lifecycle/stale'
-          stale-pr-label: 'lifecycle/stale'
-          exempt-issue-labels: 'lifecycle/frozen,help-wanted,good-first-issue,pinned'
-          exempt-pr-labels: 'lifecycle/frozen,help-wanted,good-first-issue,pinned'
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'help-wanted,good-first-issue,pinned'
+          exempt-pr-labels: 'help-wanted,good-first-issue,pinned'
 
           # Exemptions
           exempt-all-issue-assignees: true
@@ -36,9 +36,7 @@ jobs:
           # Issue messages
           stale-issue-message: |
             Hello 👋 Looks like there was no activity on this issue for last 90 days.
-            
             **Do you mind updating us on the status?** Is this still reproducible or needed? If yes, just comment on this issue or push a commit. Thanks! 🤗
-            
             If there will be no activity for 60 days, this issue will be closed (we can always reopen an issue if we need!).
           
           close-issue-message: |
@@ -47,9 +45,7 @@ jobs:
           # PR messages
           stale-pr-message: |
             Hello 👋 Looks like there was no activity on this amazing PR for last 90 days.
-            
             **Do you mind updating us on the status?** Is there anything we can help with? If you plan to still work on it, just comment on this PR or push a commit. Thanks! 🤗
-            
             If there will be no activity for 60 days, this PR will be closed (we can always reopen a PR if you get back to this!).
           
           close-pr-message: |
