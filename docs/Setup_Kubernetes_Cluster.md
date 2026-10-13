@@ -472,66 +472,93 @@ env:
     Encryption: enabled
 ```
 
-## Kubernetes Dashboard
+## Headlamp Dashboard
 
-Kubernetes officially provides default dashboard to monitor the cluster information.
-There are many monitoring workload from other vendors, but default dashboard does good enough to see the entire cluster activity even used to manage deployment via GUI.
+> [!NOTE]
+> [Kubernetes Dashboard](https://github.com/kubernetes-retired/dashboard) has been deprecated and archived, so it is no longer maintained.
+> The Kubernetes project recommends [Headlamp](https://headlamp.dev/) as the successor, which is now a Kubernetes SIG UI project.
+> See [From Kubernetes Dashboard to Headlamp: Understanding the Transition](https://kubernetes.io/blog/2026/06/01/dashboard-to-headlamp/) for details.
 
-See details for [Deploy and Access the Kubernetes Dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/).
+Headlamp is an extensible Kubernetes web UI to monitor the cluster information and manage the workloads via GUI.
+There are many monitoring workloads from other vendors, but Headlamp does good enough to see the entire cluster activity, and it can be extended with plugins if necessary.
+
+See details for [Headlamp In-cluster Installation](https://headlamp.dev/docs/latest/installation/in-cluster/).
+
+### Deploy Headlamp
+
+The following deploys Headlamp into `kube-system` namespace.
 
 ```bash
-### Start dashboard
-> kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
-namespace/kubernetes-dashboard created
-serviceaccount/kubernetes-dashboard created
-service/kubernetes-dashboard created
-secret/kubernetes-dashboard-certs created
-secret/kubernetes-dashboard-csrf created
-secret/kubernetes-dashboard-key-holder created
-configmap/kubernetes-dashboard-settings created
-role.rbac.authorization.k8s.io/kubernetes-dashboard created
-clusterrole.rbac.authorization.k8s.io/kubernetes-dashboard created
-rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created
-clusterrolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created
-deployment.apps/kubernetes-dashboard created
-service/dashboard-metrics-scraper created
-deployment.apps/dashboard-metrics-scraper created
+### Start Headlamp
+> kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/headlamp/main/kubernetes-headlamp.yaml
+service/headlamp created
+deployment.apps/headlamp created
+secret/headlamp-admin created
 
-### Check dashboard pods and service are running
-> kubectl get pods -n kubernetes-dashboard
-NAME                                         READY   STATUS    RESTARTS   AGE
-dashboard-metrics-scraper-64bcc67c9c-zmv7t   1/1     Running   0          55s
-kubernetes-dashboard-5c8bd6b59-ppmpz         1/1     Running   0          55s
-> kubectl get service -n kubernetes-dashboard
-NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-dashboard-metrics-scraper   ClusterIP   10.111.141.248   <none>        8000/TCP   61s
-kubernetes-dashboard        ClusterIP   10.96.239.105    <none>        443/TCP    61s
-
-### Generate token to bind ServiceAccount
-> kubectl apply -f dashboard-adminuser.yaml
-serviceaccount/admin-user created
-. kubectl apply -f dashboard-rolebind.yaml
-clusterrolebinding.rbac.authorization.k8s.io/admin-user created
-> kubectl -n kubernetes-dashboard create token admin-user --duration=8760h
-eyJhbGciOiJSUzI1NiIsImtpZCI6ImVScUFkeS1oUkdJTkF3eGxMTkNfZ3Bxc3RjZndET3ZwNEJ2REJCbVAyU0EifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNjc2Njg3Nzg5LCJpYXQiOjE2NzY2ODQxODksImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsInNlcnZpY2VhY2NvdW50Ijp7Im5hbWUiOiJhZG1pbi11c2VyIiwidWlkIjoiMDA2NjhiOWQtYWUwNS00NDdmLWJkYjUtOGI4MGVjMTgzZTc1In19LCJuYmYiOjE2NzY2ODQxODksInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlcm5ldGVzLWRhc2hib2FyZDphZG1pbi11c2VyIn0.J19f30ptmJ_PIOmhf9hUMDUc-ajr6F7VSkUQyKaM10MIvXp99mO036kHnKQgJRj1P9K9IJwOTwHdikvrE2iupDLzwilIIbzDNzDhKTQzOgFYkwKL2xQlLv1pksA9UDm9eOJA3fXVhcJ22imyRSxh-IMB4jz7IVQVObaXoZGp04J3A0vzJoQPdPWfcJ1ezZvghlZsRrNkkuTrrH3Yek2yrB2keh6oBjWZtWG7zNHd8MXhO5K0NEP_lWWyTSDX2TI9gdgYHP12gUiD6t14gcbZCObRpV8-m3qtUTbMPR_3DBo-LwrGFL6pc-i6mysjZ8qq2ssD5sZRG4mcKuVoDsjVeg
-
-### Copy the above token
-
-### Start kube-proxy, this is required to proxy cluster network and host network.
-> kubectl proxy
-Starting to serve on 127.0.0.1:8001
+### Check Headlamp pod and service are running
+> kubectl get pods -n kube-system -l k8s-app=headlamp
+...<snip>
+> kubectl get service -n kube-system headlamp
+...<snip>
 ```
 
-Until here, Kubernetes dashboard is running in cluster and proxy bridges to localhost as shows above.
+The manifest above uses `ghcr.io/headlamp-k8s/headlamp:latest` image.
+If you need to pin the Headlamp version, use [Helm chart](https://headlamp.dev/docs/latest/installation/in-cluster/#using-helm) instead.
 
-Access http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login, to check if you can see the following page,.
+```bash
+> helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/
+> helm install my-headlamp headlamp/headlamp --namespace kube-system
+```
 
-![Kubernetes Dashboard Frontpage](./../images/kubernetes_dashboard_frontpage.png)
+### Create ServiceAccount Token
 
-To login the dashboard, input the token which has been generated above procedure.
-Now you should be able to see the following Kubernetes cluster dashboard.
+Headlamp requires a token to log in.
+Here we create `headlamp-admin` ServiceAccount bound to `cluster-admin` ClusterRole, the name and namespace must match the `headlamp-admin` Secret that is created by the manifest above.
 
-![Kubernetes Dashboard Overview](./../images/kubernetes_dashboard_overview.png)
+**see deployment description [Headlamp Admin ServiceAccount](./../yaml/headlamp-admin.yaml)**
+
+```bash
+### Create ServiceAccount and ClusterRoleBinding
+> kubectl apply -f ./yaml/headlamp-admin.yaml
+serviceaccount/headlamp-admin created
+clusterrolebinding.rbac.authorization.k8s.io/headlamp-admin created
+
+### Generate token to bind ServiceAccount
+> kubectl -n kube-system create token headlamp-admin --duration=8760h
+...<snip>
+
+### Copy the above token
+```
+
+The token generated above expires after the specified duration.
+The `headlamp-admin` Secret created by the manifest holds a long-lived token for the same ServiceAccount, that can be used instead.
+
+```bash
+> kubectl -n kube-system get secret headlamp-admin -o jsonpath='{.data.token}' | base64 --decode
+```
+
+### Access Headlamp
+
+By default, Headlamp service uses Cluster IP address, so we need to `port-forward` it to the localhost or node IP address.
+
+```bash
+### Port forward to localhost
+> kubectl port-forward -n kube-system service/headlamp 8080:80
+Forwarding from 127.0.0.1:8080 -> 4466
+
+### Port forward to the node IP address, if accessing from other hosts
+> kubectl port-forward -n kube-system service/headlamp 8080:80 --address YOUR_NODE_IP
+```
+
+Access http://localhost:8080/ (or `http://<YOUR_NODE_IP>:8080/`), and input the token which has been generated above procedure to log in.
+Now you should be able to see the Kubernetes cluster overview on Headlamp.
+
+### Uninstall Headlamp
+
+```bash
+> kubectl delete -f ./yaml/headlamp-admin.yaml
+> kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/headlamp/main/kubernetes-headlamp.yaml
+```
 
 ## Break down the cluster
 

@@ -55,7 +55,7 @@ This environment is very much useful to try or test your container images or ser
   - [Setup Kubernetes API Server](./docs/Setup_Kubernetes_Cluster.md#setup-kubernetes-api-server)
   - [Join Cluster from Worker Node](./docs/Setup_Kubernetes_Cluster.md#join-the-cluster)
   - [Deploy Container Network Interface](./docs/Setup_Kubernetes_Cluster.md#deploy-cni-plugin)
-  - [Deploy Kubernetes Dashboard](./docs/Setup_Kubernetes_Cluster.md#kubernetes-dashboard)
+  - [Deploy Headlamp Dashboard](./docs/Setup_Kubernetes_Cluster.md#headlamp-dashboard)
 - [Setup KubeEdge Cloud/Edge Node](./docs/Setup_KubeEdge.md)
   - [Setup Kubernetes API server](./docs/Setup_KubeEdge.md#setup-kubernetes-api-server)
   - [Setup KubeEdge Cloudcore and Edgecore](./docs/Setup_KubeEdge.md#setup-kubeedge)
