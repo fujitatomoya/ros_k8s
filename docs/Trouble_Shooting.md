@@ -6,28 +6,25 @@
 
 Sometimes we need to check the `kubelet` journal log to debug why application pods are failing.
 
-The following is the example that weavenet fails to initialize.
+The following is the example that CNI plugin (cilium) fails to initialize.
 In this case, application pods are not instantiated yet, that is said we are not able to see any log via `kubectl describe pods xxx`.
 
 ```bash
 > kubectl get pods -A -w
-NAMESPACE              NAME                                                            READY   STATUS              RESTARTS      AGE
-kube-system            coredns-565d847f94-d9r7g                                        1/1     Running             0             18m
-kube-system            coredns-565d847f94-zbpgd                                        1/1     Running             0             18m
-kube-system            etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running             34            18m
-kube-system            kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0             18m
-kube-system            kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running             0             18m
-kube-system            kube-proxy-2stdt                                                1/1     Running             0             18m
-kube-system            kube-proxy-tk479                                                1/1     Running             0             44s
-kube-system            kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0             18m
-kube-system            weave-net-54g6h                                                 1/2     Error               0             44s
-kube-system            weave-net-bjjf8                                                 2/2     Running             1 (17m ago)   17m
-kubernetes-dashboard   dashboard-metrics-scraper-64bcc67c9c-hgjsm                      0/1     ContainerCreating   0             14m
-kubernetes-dashboard   kubernetes-dashboard-5c8bd6b59-zjjph                            0/1     ContainerCreating   0             14m
-kube-system            weave-net-54g6h                                                 0/2     Error               1 (14s ago)   44s
-kube-system            weave-net-54g6h                                                 1/2     Error               2 (7s ago)    46s
-kube-system            weave-net-54g6h                                                 0/2     CrashLoopBackOff    2 (4s ago)    47s
-kube-system            weave-net-54g6h                                                 0/2     CrashLoopBackOff    2 (3s ago)    48s
+NAMESPACE     NAME                                                            READY   STATUS              RESTARTS      AGE
+kube-system   cilium-54g6h                                                    0/1     Init:Error          2 (7s ago)    46s
+kube-system   cilium-bjjf8                                                    1/1     Running             0             17m
+kube-system   cilium-envoy-xxxxx                                              1/1     Running             0             17m
+kube-system   cilium-operator-xxxxxxxxxx-xxxxx                                1/1     Running             0             17m
+kube-system   coredns-xxxxxxxxxx-d9r7g                                        1/1     Running             0             18m
+kube-system   coredns-xxxxxxxxxx-zbpgd                                        1/1     Running             0             18m
+kube-system   etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running             0             18m
+kube-system   kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0             18m
+kube-system   kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running             0             18m
+kube-system   kube-proxy-2stdt                                                1/1     Running             0             18m
+kube-system   kube-proxy-tk479                                                1/1     Running             0             44s
+kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0             18m
+kube-system   cilium-54g6h                                                    0/1     Init:CrashLoopBackOff   3 (4s ago)   60s
 ...<snip>
 ```
 
@@ -45,13 +42,13 @@ Be advised that the following command must be issued on the physical host that `
 ```bash
 > kubectl get pods -A
 NAMESPACE     NAME                                                            READY   STATUS    RESTARTS   AGE
-kube-system   coredns-565d847f94-jvwvq                                        0/1     Pending   0          42s
-kube-system   coredns-565d847f94-k99r6                                        0/1     Pending   0          42s
-kube-system   etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running   9          57s
-kube-system   kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running   6          59s
-kube-system   kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running   6          57s
+kube-system   coredns-xxxxxxxxxx-jvwvq                                        0/1     Pending   0          42s
+kube-system   coredns-xxxxxxxxxx-k99r6                                        0/1     Pending   0          42s
+kube-system   etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running   0          57s
+kube-system   kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running   0          59s
+kube-system   kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running   0          57s
 kube-system   kube-proxy-qdx2p                                                1/1     Running   0          43s
-kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running   6          57s
+kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running   0          57s
 ```
 
 When we start the cluster, this is expected state for coredns pods.
@@ -65,14 +62,14 @@ see [Deploy CNI Plugin](./Setup_Kubernetes_Cluster.md#deploy-cni-plugin).
 ```bash
 > kubectl get pods -A
 NAMESPACE     NAME                                                            READY   STATUS              RESTARTS   AGE
-kube-system   coredns-565d847f94-7zlmq                                        0/1     ContainerCreating   0          50s
-kube-system   coredns-565d847f94-9rzsf                                        0/1     ContainerCreating   0          50s
-kube-system   etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running             8          66s
-kube-system   kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             5          64s
-kube-system   kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running             5          64s
+kube-system   cilium-hhl6k                                                    1/1     Running             0          4s
+kube-system   coredns-xxxxxxxxxx-7zlmq                                        0/1     ContainerCreating   0          50s
+kube-system   coredns-xxxxxxxxxx-9rzsf                                        0/1     ContainerCreating   0          50s
+kube-system   etcd-tomoyafujita-hp-compaq-elite-8300-sff                      1/1     Running             0          66s
+kube-system   kube-apiserver-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0          64s
+kube-system   kube-controller-manager-tomoyafujita-hp-compaq-elite-8300-sff   1/1     Running             0          64s
 kube-system   kube-proxy-r8jt6                                                1/1     Running             0          50s
-kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             5          63s
-kube-system   weave-net-hhl6k                                                 1/2     Running             0          4s
+kube-system   kube-scheduler-tomoyafujita-hp-compaq-elite-8300-sff            1/1     Running             0          63s
 ```
 
 This could be a problem, check the pods via `kubectl describe pods <pod name> -n kube-system`.
@@ -81,7 +78,7 @@ This could be a problem, check the pods via `kubectl describe pods <pod name> -n
 Events:
   Type     Reason                  Age   From               Message
   ----     ------                  ----  ----               -------
-  Normal   Scheduled               65s   default-scheduler  Successfully assigned kube-system/coredns-565d847f94-7zlmq to tomoyafujita-hp-compaq-elite-8300-sff
+  Normal   Scheduled               65s   default-scheduler  Successfully assigned kube-system/coredns-xxxxxxxxxx-7zlmq to tomoyafujita-hp-compaq-elite-8300-sff
   Warning  FailedCreatePodSandBox  5s    kubelet            Failed to create pod sandbox: rpc error: code = Unknown desc = failed to setup network for sandbox "92af7c41c8a6980712f58ab5944752f266f3c74d7d3eb354555e75fc751b14c8": plugin type="cilium-cni" name="cilium" failed (add): unable to connect to Cilium daemon: failed to create cilium agent client after 30.000000 seconds timeout: Get "http:///var/run/cilium/cilium.sock/v1/config": dial unix /var/run/cilium/cilium.sock: connect: no such file or directory
 Is the agent running?
   Normal  SandboxChanged  4s  kubelet  Pod sandbox changed, it will be killed and re-created.
@@ -138,6 +135,9 @@ nameserver zz.zz.zz.zz
 ### configure kubelet to use static resolver file
 > cat /etc/default/kubelet
 KUBELET_EXTRA_ARGS=--resolv-conf=/etc/resolv-static.conf
+
+> systemctl daemon-reload
+> systemctl restart kubelet
 ```
 
 ### Container runtime network not ready
@@ -154,12 +154,49 @@ please restart the `containerd.service` and retry.
 systemctl restart containerd.service
 ```
 
+### kubelet fails to start with `container runtime is not running` or `CRI v1 runtime API is not implemented`
+
+`containerd.io` package from Docker apt repository disables the CRI plugin in default (`disabled_plugins = ["cri"]` in `/etc/containerd/config.toml`).
+kubelet cannot register the node if the container runtime does not support CRI v1.
+Regenerate the default containerd configuration with `SystemdCgroup = true`, see [Docker / Containerd](./Install_Kubernetes_Packages.md#docker--containerd).
+
+```bash
+> containerd config default > /etc/containerd/config.toml
+> sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+> systemctl restart containerd
+```
+
+### kubelet fails to start with `swap is enabled`
+
+kubelet fails to start if swap memory is enabled on the node in default.
+Disable swap on the node and also in `/etc/fstab` so that it stays disabled after reboot, see [System Configuration](./Install_Kubernetes_Packages.md#system-configuration).
+
+```bash
+> swapoff -a
+> sed -i '/\sswap\s/s/^\(.*\)$/#\1/g' /etc/fstab
+```
+
+## Cilium
+
+### ROS 2 nodes on different cluster nodes cannot discover each other
+
+ROS 2 / DDS uses multicast for the participant discovery in default, Cilium multicast is disabled in default and multicast group needs to be configured.
+see [Enable Multicast](./Setup_Kubernetes_Cluster.md#enable-multicast).
+
+```bash
+> cilium config view | grep multicast
+multicast-enabled                                 true
+> cilium multicast list subscriber --all
+```
+
+If multicast is not available in your environment, use [ROS 2 Fast-DDS Discovery Server](./ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) or `ROS_STATIC_PEERS` to use unicast discovery.
+
+## KIND
+
 ### CNI plugins for KIND
 
-if using kind `v0.19.0` or earlier, it would be required to install CNI plugins in the host system and bind them into kind images.
-
-KIND node docker image does not contain some CNI plugin binaries under `/opt/cni/bin`, this is because KIND provides default network interface which is called `kindnet`.
-User can disable default `kindnet` but using specific CNI plugin such as flannel requires other CNI plugins under the `/opt/cni/bin`.
+KIND node docker image contains the standard CNI plugin binaries under `/opt/cni/bin` for the default network interface which is called `kindnet`.
+If using kind `v0.19.0` or earlier, or if your CNI plugin requires other CNI plugin binaries, it would be required to install CNI plugins in the host system and bind them into kind nodes.
 The following operation to build the all CNI plugins in the host system to bind the docker container which is actually KIND node instance.
 
 ```bash
@@ -167,6 +204,27 @@ git clone https://github.com/containernetworking/plugins.git
 cd plugins
 ./build_linux.sh
 export OPT_CNI_BIN_PATH=$(realpath -s bin)
-cd <ros_k8s>/yaml
-sed 's/OPT_CNI_BIN_PATH/${OPT_CNI_BIN_PATH}/' kind-multiple-node.yaml.template | envsubst > kind-multiple-node.yaml
+```
+
+and add `extraMounts` to each node in [kind-multiple-node.yaml](./../yaml/kind-multiple-node.yaml).
+
+```yaml
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: /path/to/plugins/bin  # OPT_CNI_BIN_PATH
+    containerPath: /opt/cni/bin
+```
+
+### Too many open files
+
+kind cluster with multiple nodes may fail to start the pods with `too many open files` error, since the host system inotify limits are too low.
+see [Pod errors due to "too many open files"](https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files).
+
+```bash
+> cat <<EOF > /etc/sysctl.d/kind.conf
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_user_instances = 512
+EOF
+> sysctl --system
 ```

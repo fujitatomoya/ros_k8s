@@ -23,8 +23,9 @@ To break down the requirements for robot and robotics would be very much useful 
 Since Kubernetes uses container images and agnostic from it, any distribution should be supported.
 But the following is primary supported distribution of ROS and ROS 2.
 
-- [ROS Noetic](http://wiki.ros.org/noetic)
-- [ROS Rolling](https://docs.ros.org/en/rolling/)
+- [ROS Noetic](http://wiki.ros.org/noetic) (ROS 1, Ubuntu 20.04, **EOL May 2025**, kept for reference)
+- [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/) (LTS, Ubuntu 24.04)
+- [ROS 2 Rolling](https://docs.ros.org/en/rolling/) (development distribution)
 
 ## Cluster System Configuration
 
@@ -35,8 +36,8 @@ We can use either `Physical Host System` or `Virtualized Instance`.
 This is practical environment for robot and robotics application in general.
 This will set up Kubernetes cluster on the following verified host systems.
 
-  - Ubuntu: Focal/Jammy/Noble
-  - Architecture: amd64/aarch64(Raspberry Pi4)
+  - Ubuntu: 24.04 LTS (Noble)
+  - Architecture: amd64/aarch64(Raspberry Pi 4/5)
 
 - Virtualized Instance
 
@@ -44,17 +45,30 @@ This is virtualized Kubernetes cluster environment which can be established on s
 We can use this environment if container requires pure computation resource but hardware or physical sensor devices.
 This environment is very much useful to try or test your container images or services to make sure if those work as expected, and easy to break down whole Kubernetes cluster with one command.
 
+## Verified Versions
+
+| Component | Version |
+| --- | --- |
+| Ubuntu | 24.04 LTS (Noble) |
+| Kubernetes | v1.37 |
+| KubeEdge | v1.23.1 (verified with Kubernetes v1.30 - v1.32) |
+| kind | v0.33.0 (`kindest/node:v1.37.0`) |
+| Cilium | v1.20.x |
+| containerd | 2.x (Docker apt repository) |
+
 ## Tutorials
 
 - [Install Kubernetes Packages](./docs/Install_Kubernetes_Packages.md)
 - [Build ROS / ROS 2 Full Docker Multi-Arch Images](./docs/Build_Docker_Images.md)
-  - [ROS Noetic Container Build](./docs//Build_Docker_Images.md#ros-noetic)
-  - [ROS Rolling Container Build](./docs//Build_Docker_Images.md#ros-rolling)
+  - [ROS Noetic Container Build](./docs/Build_Docker_Images.md#ros-noetic)
+  - [ROS Jazzy Container Build](./docs/Build_Docker_Images.md#ros-jazzy)
+  - [ROS Rolling Container Build](./docs/Build_Docker_Images.md#ros-rolling)
 - [Setup Kubernetes Cluster](./docs/Setup_Kubernetes_Cluster.md)
   - [Container Network Interface (CNI)](./docs/Setup_Kubernetes_Cluster.md#container-network-interface-cni)
   - [Setup Kubernetes API Server](./docs/Setup_Kubernetes_Cluster.md#setup-kubernetes-api-server)
   - [Join Cluster from Worker Node](./docs/Setup_Kubernetes_Cluster.md#join-the-cluster)
   - [Deploy Container Network Interface](./docs/Setup_Kubernetes_Cluster.md#deploy-cni-plugin)
+  - [Enable Cilium Multicast for ROS 2](./docs/Setup_Kubernetes_Cluster.md#enable-multicast)
   - [Deploy Headlamp Dashboard](./docs/Setup_Kubernetes_Cluster.md#headlamp-dashboard)
 - [Setup KubeEdge Cloud/Edge Node](./docs/Setup_KubeEdge.md)
   - [Setup Kubernetes API server](./docs/Setup_KubeEdge.md#setup-kubernetes-api-server)
@@ -79,6 +93,7 @@ This environment is very much useful to try or test your container images or ser
 - [Robotics System General](./docs/Robotics_System_General.md)
   - [Reserve Resources for Host System](./docs/Robotics_System_General.md#reserve-resources-for-host-system)
   - [Assign Resources to Pods/Containers](./docs/Robotics_System_General.md#assign-resources-to-podscontainers)
+- [Trouble Shooting](./docs/Trouble_Shooting.md)
 
 ## Slides / Talks
 
@@ -93,8 +108,10 @@ This environment is very much useful to try or test your container images or ser
 - [Kubernetes Official Documentation](https://kubernetes.io/docs/home/)
 - [KubeEdge Official Documentation](https://kubeedge.io/docs/welcome/getting-started)
 - [Kubernetes IN Docker](https://kind.sigs.k8s.io/)
+- [Cilium Documentation](https://docs.cilium.io/en/stable/)
 - [ROS Noetic](http://wiki.ros.org/noetic)
-- [ROS Rolling](https://docs.ros.org/en/rolling/)
+- [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/)
+- [ROS 2 Rolling](https://docs.ros.org/en/rolling/)
 
 ## Author
 

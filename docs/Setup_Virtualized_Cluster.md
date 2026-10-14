@@ -5,6 +5,7 @@ In this section, it describes how to set up virtual Kubernetes cluster using sin
 ## Reference
 
 - [Kubernetes IN Docker official document](https://kind.sigs.k8s.io/)
+- [kind Configuration](https://kind.sigs.k8s.io/docs/user/configuration/)
 - [Set up Kind cluster(Japanese)](https://qiita.com/tomoyafujita/items/5a3c06705f62c5732bc5)
 
 ## Kubernetes IN Docker
@@ -14,7 +15,7 @@ It creates docker containers as cluster host system with using linux namespaces,
 In one word, kind uses docker containers in the host docker system, so that it just appears to be virtual host systems are running as containers.
 Command operation using `kubectl` will be port forwarded to the virtualized cluster node to conceal the abstraction as user experience.
 
-![KIND Overview](https://qiita-user-contents.imgix.net/https%3A%2F%2Fqiita-image-store.s3.ap-northeast-1.amazonaws.com%2F0%2F112819%2F9018ca44-63e3-9edf-1a48-69552f316d91.png?ixlib=rb-4.0.0&auto=format&gif-q=60&q=75&w=1400&fit=max&s=c6c861589da81075ff5d896d4156b1dc)
+![KIND Overview](./../images/kind_architecture_overview.png)
 
 ***Once kubernetes virtualized cluster is ready, everything else will be the same with physical cluster operation with using `kubectl` command.***
 
@@ -24,13 +25,14 @@ See [Install Kubernetes Packages](../docs/Install_Kubernetes_Packages.md)
 If the installation has been completed, we can see the kind version as following.
 
 ```bash
-# No root permission is required to use KIND
+# No root permission is required to use KIND, but the user must be in docker group
+> docker version
 > kind version
-kind v0.19.0 go1.21.4 linux/amd64
+kind v0.33.0 go1.2x.x linux/amd64
 ```
 
-## CNI plugins
-
+kind `v0.33.0` uses `kindest/node:v1.37.0` as the default node image, that is said Kubernetes `v1.37.0` is deployed in the virtual cluster.
+Other Kubernetes versions can be used via `--image` option with the pre-built node images listed in [kind releases](https://github.com/kubernetes-sigs/kind/releases), it is recommended to pin the image with `@sha256` digest.
 
 ## Single node cluster setup
 
@@ -39,22 +41,22 @@ kind v0.19.0 go1.21.4 linux/amd64
 ```bash
 > kind create cluster
 Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.25.2) 🖼 
- ✓ Preparing nodes 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
 Set kubectl context to "kind-kind"
 You can now use your cluster with:
 
 kubectl cluster-info --context kind-kind
 
-Have a nice day! 👋
+Thanks for using kind! 😊
 
-> kubectl config get-contexts 
+> kubectl config get-contexts
 CURRENT   NAME        CLUSTER     AUTHINFO    NAMESPACE
-*         kind-kind   kind-kind   kind-kind   
+*         kind-kind   kind-kind   kind-kind
 
 > kubectl cluster-info --context kind-kind
 Kubernetes control plane is running at https://127.0.0.1:33691
@@ -67,16 +69,18 @@ that is all to setup the Kubernetes Cluster, as you can see below, cluster is re
 during cluster creation, kind adds the cluster configuration to `${HOME}/.kube/config`, so that user can access the cluster system via `kubectl` command.
 at the same time, it binds one of the host port to container runtime which runs Kubernetes api-server.
 
+Single node cluster uses `kindnet` as the default CNI plugin, which is enough for the single node cluster but does not support multicast.
+
 - Check cluster information
 
 ```bash
 > kubectl get nodes -o wide
-NAME                 STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-kind-control-plane   Ready    control-plane   5m1s   v1.25.2   172.18.0.2    <none>        Ubuntu 22.04.1 LTS   5.15.0-60-generic   containerd://1.6.8
+NAME                 STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   5m1s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
 
 > docker ps
 CONTAINER ID   IMAGE                  COMMAND                  CREATED         STATUS         PORTS                       NAMES
-74f62b76ac50   kindest/node:v1.25.2   "/usr/local/bin/entr…"   7 minutes ago   Up 7 minutes   127.0.0.1:33691->6443/tcp   kind-control-plane
+74f62b76ac50   kindest/node:v1.37.0   "/usr/local/bin/entr…"   7 minutes ago   Up 7 minutes   127.0.0.1:33691->6443/tcp   kind-control-plane
 ```
 
 - Delete kind cluster
@@ -95,36 +99,109 @@ we can also see [Kind Advanced Tutorial](https://kind.sigs.k8s.io/docs/user/quic
 
 - Start kind cluster
 
-using [KIND multiple node description template](../yaml/kind-multiple-node.yaml.template), kind can creates the virtual cluster with 3 virtual nodes as following.
+using [KIND multiple node description](../yaml/kind-multiple-node.yaml), kind can creates the virtual cluster with 3 virtual nodes as following.
+In this description, the default CNI (`kindnet`) is disabled (`disableDefaultCNI: true`) so that we can deploy Cilium as CNI plugin, which supports multicast for ROS 2.
 
 ```bash
-> kind create cluster --config=kind-multiple-node.yaml
+> kind create cluster --config=./yaml/kind-multiple-node.yaml
 Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.25.2) 🖼 
- ✓ Preparing nodes 📦 📦 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
- ✓ Joining worker nodes 🚜 
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
 Set kubectl context to "kind-kind"
 You can now use your cluster with:
 
 kubectl cluster-info --context kind-kind
 
-Have a nice day! 👋
+Thanks for using kind! 😊
 
 > kubectl cluster-info --context kind-kind
-Kubernetes control plane is running at https://127.0.0.1:46403
-CoreDNS is running at https://127.0.0.1:46403/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Kubernetes control plane is running at https://127.0.0.1:43059
+CoreDNS is running at https://127.0.0.1:43059/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 
+### Nodes are NotReady until CNI plugin is deployed
 > kubectl get nodes -o wide
-NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-kind-control-plane   Ready    control-plane   76s   v1.25.2   172.18.0.3    <none>        Ubuntu 22.04.1 LTS   5.15.0-60-generic   containerd://1.6.8
-kind-worker          Ready    <none>          55s   v1.25.2   172.18.0.2    <none>        Ubuntu 22.04.1 LTS   5.15.0-60-generic   containerd://1.6.8
-kind-worker2         Ready    <none>          55s   v1.25.2   172.18.0.4    <none>        Ubuntu 22.04.1 LTS   5.15.0-60-generic   containerd://1.6.8
+NAME                 STATUS     ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+kind-control-plane   NotReady   control-plane   26s   v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker          NotReady   <none>          12s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker2         NotReady   <none>          12s   v1.37.0   172.18.0.4    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+```
+
+- Deploy Cilium CNI plugin
+
+  see [Install Cilium CLI](./Setup_Kubernetes_Cluster.md#install-cilium-cli) to install `cilium` CLI in the host system.
+  `cilium install` auto-detects kind cluster and configures Cilium accordingly.
+
+```bash
+> cilium install --version 1.20.2
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+
+> cilium status --wait
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+DaemonSet              cilium                   Desired: 3, Ready: 3/3, Available: 3/3
+DaemonSet              cilium-envoy             Desired: 3, Ready: 3/3, Available: 3/3
+Deployment             cilium-operator          Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium                   Running: 3
+                       cilium-envoy             Running: 3
+                       cilium-operator          Running: 1
+                       clustermesh-apiserver
+                       hubble-relay
+Cluster Pods:          3/3 managed by Cilium
+Helm chart version:    1.20.2
+...<snip>
+
+> kubectl get nodes -o wide
+NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   77s   v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker          Ready    <none>          63s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker2         Ready    <none>          63s   v1.37.0   172.18.0.4    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+```
+
+  To use ROS 2 / DDS multicast discovery between the virtual nodes, see [Enable Multicast](./Setup_Kubernetes_Cluster.md#enable-multicast).
+
+```bash
+> cilium config set multicast-enabled true
+✨ Patching ConfigMap cilium-config with multicast-enabled=true...
+♻️  Restarted Cilium pods
+
+> cilium multicast add --group-ip 239.255.0.1
+Added 2 nodes (kind-control-plane, kind-worker2) to multicast group 239.255.0.1 in kind-worker
+Added 2 nodes (kind-worker, kind-worker2) to multicast group 239.255.0.1 in kind-control-plane
+Added 2 nodes (kind-control-plane, kind-worker) to multicast group 239.255.0.1 in kind-worker2
+
+> cilium multicast list subscriber --all
+Node                 Group         Subscriber    Type
+kind-worker          239.255.0.1   10.244.2.43   Remote Node
+                                   10.244.0.23   Remote Node
+kind-worker2         239.255.0.1   10.244.0.23   Remote Node
+                                   10.244.1.25   Remote Node
+kind-control-plane   239.255.0.1   10.244.1.25   Remote Node
+                                   10.244.2.43   Remote Node
+```
+
+- Load local container images (Optional)
+
+  kind nodes pull the container images from the registry in default, locally built images can be loaded into the kind nodes directly.
+
+```bash
+> kind load docker-image tomoyafujita/ros:rolling
+Image: "tomoyafujita/ros:rolling" with ID "sha256:31533583b2f5..." not yet present on node "kind-control-plane", loading...
+Image: "tomoyafujita/ros:rolling" with ID "sha256:31533583b2f5..." not yet present on node "kind-worker2", loading...
+Image: "tomoyafujita/ros:rolling" with ID "sha256:31533583b2f5..." not yet present on node "kind-worker", loading...
 ```
 
 - Delete kind cluster

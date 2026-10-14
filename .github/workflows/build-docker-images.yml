@@ -20,30 +20,18 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  noetic:
+  build:
 
-    name: build-noetic-${{matrix.os}}
+    name: build-${{ matrix.distro }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-24.04]
+        distro: [noetic, jazzy, rolling]
 
     steps:
     - name: Check out repository code
-      uses: actions/checkout@v3
-    - name: Build ROS Noetic docker images
-      run: docker build --rm -f docker/Dockerfile.noetic -t workflows/ros-noetic .
-
-  rolling:
-
-    name: build-rolling-${{matrix.os}}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-
-    steps:
-    - name: Check out repository code
-      uses: actions/checkout@v3
-    - name: Build ROS Rolling docker images
-      run: docker build --rm -f docker/Dockerfile.rolling -t workflows/ros-rolling .
+      uses: actions/checkout@v4
+    - name: Build ROS ${{ matrix.distro }} docker image
+      run: docker build --rm -f docker/Dockerfile.${{ matrix.distro }} -t workflows/ros-${{ matrix.distro }} .

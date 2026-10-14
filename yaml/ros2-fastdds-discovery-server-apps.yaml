@@ -23,9 +23,6 @@ spec:
         - name: ROS_DISCOVERY_SERVER
           value: "primary-discovery-server:11811;secondary-discovery-server:11888"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -58,9 +55,6 @@ spec:
         - name: ROS_DISCOVERY_SERVER
           value: "primary-discovery-server:11811;secondary-discovery-server:11888"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -94,9 +88,6 @@ spec:
         - name: ROS_DISCOVERY_SERVER
           value: "primary-discovery-server:11811;secondary-discovery-server:11888"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -129,9 +120,6 @@ spec:
         - name: ROS_DISCOVERY_SERVER
           value: "primary-discovery-server:11811;secondary-discovery-server:11888"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -164,9 +152,6 @@ spec:
         - name: ROS_DISCOVERY_SERVER
           value: "primary-discovery-server:11811;secondary-discovery-server:11888"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -199,9 +184,6 @@ spec:
         - name: ROS_DISCOVERY_SERVER
           value: "primary-discovery-server:11811;secondary-discovery-server:11888"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

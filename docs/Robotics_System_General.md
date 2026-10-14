@@ -52,28 +52,35 @@ pods:               110
 
 - How to change the allocatable resource on the node
 
-  `Node Allocatable` feature is configured by `kubelet`, so we need to edit the `kubelet` systemd service file on the edge.
+  `Node Allocatable` feature is configured by `kubelet`, so we need to edit the `kubelet` configuration on the edge.
   This setting can be before and after the node joins the cluster system, but `kubelet` systemd service needs to be restarted on the edge device.
 
-  add `--reserved-cpus=2-3 --system-reserved=memory=4Gi --eviction-hard=memory.available<5%` below.
+  `kubeadm` generates the [KubeletConfiguration](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/) file in `/var/lib/kubelet/config.yaml`, and the kubelet command line flags for these settings are deprecated in favor of the configuration file.
+  add `reservedSystemCPUs`, `systemReserved` and `evictionHard` as following.
 
 ```bash
 ### on edge node named ubuntu
-> vi /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+> vi /var/lib/kubelet/config.yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
 ...<snip>
-#ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS ### ORIGINAL
-ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --reserved-cpus=2-3 --system-reserved=memory=4Gi --eviction-hard=memory.available<5%
+### Reserve CPU 2 and 3 for the host system (kubelet uses the rest of CPUs, 0 and 1)
+reservedSystemCPUs: "2-3"
+### Reserve 4GiB memory for the host system
+systemReserved:
+  memory: 4Gi
+### Evict pods when available memory is less than 5%
+evictionHard:
+  memory.available: "5%"
 ```
+
+  (`KUBELET_EXTRA_ARGS=--reserved-cpus=2-3 --system-reserved=memory=4Gi --eviction-hard=memory.available<5%` in `/etc/default/kubelet` is the equivalent with the command line flags, but not recommended.)
 
   and then restart the `kubelet` systemd service.
 
 ```bash
-> systemctl daemon-reload
 > systemctl restart kubelet
-> systemctl cat kubelet | grep ExecStart
-ExecStart=/usr/bin/kubelet
-ExecStart=
-ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --reserved-cpus=2-3 --system-reserved=memory=4Gi --eviction-hard=memory.available<5%
+> systemctl status kubelet
 ```
 
   check the resources on the cluster.
@@ -117,10 +124,12 @@ spec:
   containers:
   - image: tomoyafujita/ros:rolling
     resources:
-    limits:
-      cpu: "2"
-      memory: "2Gi"
-    requests:
-      cpu: "1"
-      memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+      requests:
+        cpu: "1"
+        memory: "1Gi"
 ```
+
+see [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for more details.
