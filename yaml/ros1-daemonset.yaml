@@ -31,9 +31,6 @@ spec:
         args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rostopic echo chatter"]
         imagePullPolicy: IfNotPresent
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

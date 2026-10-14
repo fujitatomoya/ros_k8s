@@ -4,9 +4,9 @@ This section provides intermediate examples such as GUI display access, security
 
 ## ROS Rolling Demonstration
 
-***<span style="color: red"> Please Use WeaveNet CNI Plugin </span>***
+***<span style="color: red"> Please Use Cilium CNI Plugin with Multicast Enabled </span>***
 
-see [Why we need to use WeaveNet](./ROS2_Deployment_Demonstration.md#ros-rolling-demonstration)
+see [Why we need to use Cilium with Multicast](./ROS2_Deployment_Demonstration.md#ros-rolling-demonstration)
 
 ### ROS 2 GUI Display Access
 
@@ -16,6 +16,7 @@ At the same time, it will bring up rqt to monitor the topic on the same node whi
 To control the capability such as `which node has display`, it will use node labels to describe the capability and at the deployment we can select this label as application container requirements.
 
 **To run this example, at least one physical node must have display xserver running.**
+Ubuntu 24.04 desktop uses Wayland session in default, `Xwayland` provides the X11 socket under `/tmp/.X11-unix` so that the following procedure works as well, otherwise log in with `Ubuntu on Xorg` session.
 
 **see deployment description [ROS 2 turtlesim and rqt](./../yaml/ros2-turtlesim.yaml)**
 
@@ -26,6 +27,10 @@ To control the capability such as `which node has display`, it will use node lab
 ```bash
 > xhost +local:root
 non-network local connections being added to access control list
+
+### Check the display number, this must be aligned with DISPLAY in ros2-turtlesim.yaml
+> echo $DISPLAY
+:1
 ```
 
 - Labeling the display capability.
@@ -37,14 +42,14 @@ non-network local connections being added to access control list
 > kubectl label nodes ubuntu nodetype=edgedevice
 > kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE   VERSION   LABELS
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   63m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
-ubuntu                                  Ready    <none>          45m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=edgedevice
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   63m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
+ubuntu                                  Ready    <none>          45m   v1.37.0   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=edgedevice
 ```
 
 - Start turtlesim and rqt on `edgeserver`, and start bash process node in `edgedevice`.
 
 ```bash
-> kubectl apply -f ros2-turtlesim.yaml
+> kubectl apply -f ./yaml/ros2-turtlesim.yaml
 deployment.apps/ros2-turtlesim-gui created
 deployment.apps/rqt created
 deployment.apps/ros2-teleop-key created
@@ -93,26 +98,27 @@ It uses POSIX shared memory file `/dev/shm` in default including [Shared Memory 
 - Start DaemonSet
 
 ```bash
-> kubectl apply -f ros2-data-sharing.yaml
+> kubectl apply -f ./yaml/ros2-data-sharing.yaml
 daemonset.apps/ros2-data-sharing created
 ```
 
 - Stop DaemonSet
 
 ```bash
-> kubectl delete -f ros2-data-sharing.yaml
+> kubectl delete -f ./yaml/ros2-data-sharing.yaml
 daemonset.apps "ros2-data-sharing" deleted
 ```
 
 ### ROS 2 Fast-DDS Discovery Server
 
-ROS 2 provides [Fast-DDS discovery server](https://fast-dds.docs.eprosima.com/en/v2.1.0/fastdds/discovery/discovery_server.html#discovery-server), that is a feature to support centralized dynamic discovery mechanism.
+ROS 2 provides [Fast-DDS discovery server](https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/discovery_server.html), that is a feature to support centralized dynamic discovery mechanism.
 Centralized discovery is way more efficient for discovery process compared to distributed discovery protocol, this improves significant discovery performance when there are many ROS 2 context (a.k.a DDS participant) in the network.
+Besides that, discovery server does not require multicast, so that this example works with any CNI plugin such as Flannel.
 
 But this centralized design also brings back the problem for the static configuration for the ROS 2 application, which requires to set the discovery server IP addresses when the application starts.
 Taking advantage of DNS and Headless service provided by Kubernetes, discovery server IP addresses are resolved dynamically by DNS in the cluster network.
 
-This example shows how to start the [Fast-DDS discovery server](https://fast-dds.docs.eprosima.com/en/v2.1.0/fastdds/discovery/discovery_server.html#discovery-server) with headless service, and how application resolves the addresses by DNS.
+This example shows how to start the [Fast-DDS discovery server](https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/discovery_server.html) with headless service, and how application resolves the addresses by DNS.
 
 **see deployment description [ROS 2 Fast-DDS Discovery Server](./../yaml/ros2-fastdds-discovery-server.yaml) and [Application Deployment](./../yaml/ros2-fastdds-discovery-server-apps.yaml)**
 
@@ -124,8 +130,10 @@ This example shows how to start the [Fast-DDS discovery server](https://fast-dds
   These discovery server containers will be deployed to the `control-plane` in this example, but this can be deployed anywhere else.
   It is highly recommended that primary and secondary discovery server should be deployed to different physical host system, so that it can tolerate the situation.
 
+  Discovery server is started by `fastdds discovery -p <port>` ([Fast DDS CLI](https://fast-dds.docs.eprosima.com/en/latest/fastddscli/cli/cli.html#discovery)), `--server-id` option is deprecated in Fast DDS 3.x which is used by ROS 2 Jazzy or later.
+
 ```bash
->kubectl apply -f ./yaml/ros2-fastdds-discovery-server.yaml
+> kubectl apply -f ./yaml/ros2-fastdds-discovery-server.yaml
 deployment.apps/discovery-server-primary created
 service/primary-discovery-server created
 deployment.apps/discovery-server-secondary created
@@ -136,23 +144,29 @@ service/secondary-discovery-server created
   Instead, those services are bound to the IP addresses of pods running the discovery server application containers.
 
 ```bash
->kubectl get pods -o wide
-NAME                                         READY   STATUS    RESTARTS   AGE   IP          NODE                 NOMINATED NODE   READINESS GATES
-discovery-server-primary-6ccc9cb949-qdcxw    1/1     Running   0          45m   10.32.0.2   kind-control-plane   <none>           <none>
-discovery-server-secondary-9bfc46bb4-t9jms   1/1     Running   0          45m   10.32.0.3   kind-control-plane   <none>           <none>
-ros2-listener-1-847d6c848d-7655m             1/1     Running   0          43m   10.44.0.4   kind-worker          <none>           <none>
-ros2-listener-2-799b457dff-qdgrj             1/1     Running   0          43m   10.40.0.4   kind-worker2         <none>           <none>
-ros2-listener-3-768dff8698-t9sdg             1/1     Running   0          43m   10.44.0.5   kind-worker          <none>           <none>
-ros2-talker-1-7484866974-ddlt7               1/1     Running   0          43m   10.40.0.2   kind-worker2         <none>           <none>
-ros2-talker-2-87b8db554-z7fwz                1/1     Running   0          43m   10.40.0.1   kind-worker2         <none>           <none>
-ros2-talker-3-7bd6fcdd74-jntmx               1/1     Running   0          43m   10.40.0.3   kind-worker2         <none>           <none>
+> kubectl get pods -o wide
+NAME                                         READY   STATUS    RESTARTS   AGE   IP           NODE                 NOMINATED NODE   READINESS GATES
+discovery-server-primary-6ccc9cb949-qdcxw    1/1     Running   0          45m   10.244.0.2   kind-control-plane   <none>           <none>
+discovery-server-secondary-9bfc46bb4-t9jms   1/1     Running   0          45m   10.244.0.3   kind-control-plane   <none>           <none>
+ros2-listener-1-847d6c848d-7655m             1/1     Running   0          43m   10.244.1.4   kind-worker          <none>           <none>
+ros2-listener-2-799b457dff-qdgrj             1/1     Running   0          43m   10.244.2.4   kind-worker2         <none>           <none>
+ros2-listener-3-768dff8698-t9sdg             1/1     Running   0          43m   10.244.1.5   kind-worker          <none>           <none>
+ros2-talker-1-7484866974-ddlt7               1/1     Running   0          43m   10.244.2.2   kind-worker2         <none>           <none>
+ros2-talker-2-87b8db554-z7fwz                1/1     Running   0          43m   10.244.2.1   kind-worker2         <none>           <none>
+ros2-talker-3-7bd6fcdd74-jntmx               1/1     Running   0          43m   10.244.2.3   kind-worker2         <none>           <none>
 
->kubectl exec --tty --stdin ros2-listener-1-847d6c848d-7655m -- nslookup primary-discovery-server
+> kubectl get services
+NAME                         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes                   ClusterIP   10.96.0.1    <none>        443/TCP   50m
+primary-discovery-server     ClusterIP   None         <none>        <none>    45m
+secondary-discovery-server   ClusterIP   None         <none>        <none>    45m
+
+> kubectl exec --tty --stdin ros2-listener-1-847d6c848d-7655m -- nslookup primary-discovery-server
 Server:		10.96.0.10
 Address:	10.96.0.10#53
 
 Name:	primary-discovery-server.default.svc.cluster.local
-Address: 10.32.0.2
+Address: 10.244.0.2
 ```
 
 - ROS 2 Talker and Listener Application Deployment
@@ -170,6 +184,33 @@ deployment.apps/ros2-talker-3 created
 deployment.apps/ros2-listener-1 created
 deployment.apps/ros2-listener-2 created
 deployment.apps/ros2-listener-3 created
+
+> kubectl logs deployment/ros2-listener-1 | head -4
+data: Hello, I am talker-1
+---
+data: Hello, I am talker-1
+---
+```
+
+  Be advised that the discovery server clients only know the topics that they are subscribed or published, so that `ros2 topic list` in the application container does not show all topics in the system.
+  Use `ROS_SUPER_CLIENT=true` environmental variable for the introspection tools such as `ros2cli` to discover everything.
+
+```bash
+> kubectl exec --stdin --tty deployment/ros2-listener-1 -- /bin/bash
+root@ros2-listener-1-847d6c848d-7655m:/# source /opt/ros/rolling/setup.bash
+root@ros2-listener-1-847d6c848d-7655m:/# ROS_SUPER_CLIENT=true ros2 topic list
+/chatter1
+/chatter2
+/chatter3
+/parameter_events
+/rosout
+```
+
+- Stop deployment
+
+```bash
+> kubectl delete -f ./yaml/ros2-fastdds-discovery-server-apps.yaml
+> kubectl delete -f ./yaml/ros2-fastdds-discovery-server.yaml
 ```
 
 ### ROS 2 Security Enclaves with ConfigMap
@@ -189,13 +230,25 @@ This tutorial tells how to convert the security enclaves into `Configuration Map
 This does not matter where the security enclaves are, nor where ROS 2 application starts up.
 Kubernetes takes care of deployment and configuration map, to start the ROS 2 application with specific configuration map dynamically.
 
+> [!NOTE]
+> ConfigMap is not encrypted in the cluster, so that it is suitable for the public certificates and permissions but private keys.
+> For the production use, [Kubernetes Secret](https://kubernetes.io/docs/concepts/configuration/secret/) with encryption at rest should be used to bind the private keys (`key.pem`) to the application container.
+
 ![ROS 2 Security with Configuration Map](./../images/ros2_security_enclaves.png)
 
-**see deployment description [ROS 2 Secured App Deployment](./../yaml/ros2-fastdds-discovery-server.yaml) and [ROS 2 Security Configuration Map](./../yaml/ros2-fastdds-discovery-server-apps.yaml)**
+**see deployment description [ROS 2 Secured App Deployment](./../yaml/ros2-security-sample.yaml) and [ROS 2 Security Environment ConfigMap](./../yaml/ros2-security-config.yaml)**
 
 - Generate Security Enclaves
 
   Usually security enclaves are generated by security administrator based on the security requirement for each ROS 2 application node. How to configure authentication and access permission is dependent on the requirement, so here it expects that talker and listener security enclaves are generated along with [Setting up security](https://docs.ros.org/en/rolling/Tutorials/Advanced/Security/Introducing-ros2-security.html) by user already.
+
+```bash
+### Generate the keystore and enclaves with sros2 (e.g. in tomoyafujita/ros:rolling container)
+> source /opt/ros/rolling/setup.bash
+> ros2 security create_keystore demo_keystore
+> ros2 security create_enclave demo_keystore /talker_listener/talker
+> ros2 security create_enclave demo_keystore /talker_listener/listener
+```
 
   The following security enclaves are generated.
 
@@ -240,7 +293,7 @@ cp -L demo_keystore/enclaves/talker_listener/listener/* listener_enclaves/
 ### Create talker enclaves
 kubectl create configmap talker-enclaves --from-file=./talker_enclaves
 configmap/talker-enclaves created
-### Create linstener enclaves
+### Create listener enclaves
 kubectl create configmap listener-enclaves --from-file=./listener_enclaves
 configmap/listener-enclaves created
 ```
@@ -262,20 +315,13 @@ cert.pem:
 ----
 -----BEGIN CERTIFICATE-----
 MIIBQTCB6aADAgECAhRsN6ffbQQ6/GhPaTXm3xZbWYgK9TAKBggqhkjOPQQDAjAS
-MRAwDgYDVQQDDAdzcm9zMkNBMB4XDTI0MDQxNjA0NTMyMloXDTM0MDQxNTA0NTMy
-MlowIjEgMB4GA1UEAwwXL3RhbGtlcl9saXN0ZW5lci90YWxrZXIwWTATBgcqhkjO
-PQIBBggqhkjOPQMBBwNCAATLKY5Ej2RyAeGDUZkl7Hu58/Me+N/emHkkdrh8M0jY
-cFMwaDG0qz8DiVeqaBi1dqsVeTXfZSkzsy7omv4Ypb1Low0wCzAJBgNVHRMEAjAA
-MAoGCCqGSM49BAMCA0cAMEQCIGoSaKVtEQXpSFCNjm2PAwB1/rYj+SHgR5O37APc
-1h6+AiAA437cnnom8Up/DhlJjZmXfxevtFwjfy2WLk+j8pbFhw==
+...<snip>
 -----END CERTIFICATE-----
 
 key.pem:
 ----
 -----BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgEHHPJ9VvW6dq38AF
-npoHYa8d0L/s6y3DNofanILskuahRANCAATLKY5Ej2RyAeGDUZkl7Hu58/Me+N/e
-mHkkdrh8M0jYcFMwaDG0qz8DiVeqaBi1dqsVeTXfZSkzsy7omv4Ypb1L
+...<snip>
 -----END PRIVATE KEY-----
 
 permissions.p7s:
@@ -337,7 +383,7 @@ Events:  <none>
   **see deployment description [ROS 2 Secured Sample](./../yaml/ros2-security-sample.yaml) for more details.**
 
 ```bash
-kubectl apply -f yaml/ros2-security-sample.yaml
+kubectl apply -f ./yaml/ros2-security-sample.yaml
 deployment.apps/ros2-secured-talker created
 deployment.apps/ros2-secured-listener created
 ```
@@ -365,4 +411,12 @@ root@ros2-secured-listener-78784df45f-jpdvt:/# ros2 node list
 root@ros2-secured-listener-78784df45f-jpdvt:/# ros2 topic list
 /parameter_events
 /rosout
+```
+
+- Stop deployment
+
+```bash
+kubectl delete -f ./yaml/ros2-security-sample.yaml
+kubectl delete -f ./yaml/ros2-security-config.yaml
+kubectl delete configmap talker-enclaves listener-enclaves
 ```

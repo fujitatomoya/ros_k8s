@@ -1,12 +1,13 @@
 # Setup Kubernetes Cluster
 
 In this section, it describes how to set up Kubernetes Cluster using physical host systems.
+All host systems are expected to be Ubuntu 24.04 LTS with the packages installed via [Install Kubernetes Packages](./Install_Kubernetes_Packages.md).
 
 ## Reference
 
 - [Kubernetes Official Documentation](https://kubernetes.io/docs/setup/)
-- [Integrating Kubernetes WeaveNet](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/)
-- [Kubernetes Cilium Installation Guide](https://scanfcilium.readthedocs.io/en/latest/kubernetes/install.html)
+- [Creating a cluster with kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+- [Cilium Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/)
 - [Kubernetes CNI Explained](https://www.tigera.io/learn/guides/kubernetes-networking/kubernetes-cni/)
 
 ## Container Network Interface (CNI)
@@ -22,43 +23,39 @@ Using CNI plugin underneath, container runtime adds the interface to the contain
 
 Here it does not explain details about CNI but CNI needs to be well considered based on your use case or application requirements since CNI is the network interface backend for application containers.
 
+In this tutorial, [Cilium](https://cilium.io/) is the primary CNI plugin, since it supports multicast (beta) that is required for ROS 2 / DDS discovery between the cluster nodes.
+[WeaveNet](https://github.com/weaveworks/weave), which used to be the recommended CNI in this tutorial for multicast support, has reached end of life and is no longer maintained, so it is removed from this tutorial.
+
 ## Setup Kubernetes API Server
 
-1st we do need to set up Kubernetes API server (Master server) to accept the worker nodes as cluster components.
+1st we do need to set up Kubernetes API server (control-plane) to accept the worker nodes as cluster components.
 
 ```bash
 ### Be super user access
 > sudo su -
 
 ### Make sure that swap is disabled
->  swapoff -a
+> swapoff -a
 
-### Cgroup for docker is set into systemd
-> docker info | grep Cgroup
- Cgroup Driver: systemd
- Cgroup Version: 2
+### Make sure containerd uses systemd cgroup driver, which is the default cgroup driver for kubelet
+> grep SystemdCgroup /etc/containerd/config.toml
+      SystemdCgroup = true
 
 ### Make sure kubeadm is installed to start the cluster
 > kubeadm version
-kubeadm version: &version.Info{Major:"1", Minor:"29", GitVersion:"v1.29.13", GitCommit:"9a58e9398d4aa69d7ad40f40407e54b96025e0c5", GitTreeState:"clean", BuildDate:"2025-01-15T14:41:15Z", GoVersion:"go1.22.10", Compiler:"gc", Platform:"linux/amd64"}
+kubeadm version: &version.Info{Major:"1", Minor:"37", GitVersion:"v1.37.0", ...}
 
-### Set container runtime cgroup driver aligned with Kubernetes
-### See https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
-> cat /etc/docker/daemon.json
-{
-    "exec-opts": ["native.cgroupdriver=systemd"]
-}
+### (Optional) pull the control-plane images beforehand
+> kubeadm config images pull
 
-### Restart docker systemd service
-> systemctl restart docker
-
-### Initialize master node, it might take a few minutes to complete
-> kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock
-init] Using Kubernetes version: v1.29.13
+### Initialize control-plane node, it might take a few minutes to complete
+### --pod-network-cidr is required for Flannel (10.244.0.0/16 is Flannel default), Cilium does not require it
+> kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///run/containerd/containerd.sock
+[init] Using Kubernetes version: v1.37.0
 [preflight] Running pre-flight checks
 [preflight] Pulling images required for setting up a Kubernetes cluster
 [preflight] This might take a minute or two, depending on the speed of your internet connection
-[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+[preflight] You can also perform this action beforehand using 'kubeadm config images pull'
 ...<snip>
 Your Kubernetes control-plane has initialized successfully!
 
@@ -78,10 +75,16 @@ Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
 
 Then you can join any number of worker nodes by running the following on each as root:
 
-kubeadm join <YOUR_IP_ADDRESS>:6443 --token <YOUR_TOKEN> --discovery-token-ca-cert-hash <YOUR_HASH> 
+kubeadm join <YOUR_IP_ADDRESS>:6443 --token <YOUR_TOKEN> --discovery-token-ca-cert-hash <YOUR_HASH>
 ```
 
 ***make sure you save the last line that shows how to join the cluster from worker nodes with tokens and CA hash.***
+
+If you lost the join command, it can be re-generated on the control-plane node as following.
+
+```bash
+> kubeadm token create --print-join-command
+```
 
 ## Access API-server
 
@@ -93,18 +96,20 @@ Make sure that we can access Kubernetes API server w/o any problems.
 > cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 > chown $(id -u):$(id -g) $HOME/.kube/config
 
-### check node status
+### check node status, NotReady is expected until CNI plugin is deployed
 > kubectl get nodes -o wide
+NAME           STATUS     ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION     CONTAINER-RUNTIME
+tomoyafujita   NotReady   control-plane   1m    v1.37.0   192.168.1.248   <none>        Ubuntu 24.04 LTS   6.8.0-xx-generic   containerd://2.x.x
 
-### check pods status
+### check pods status, coredns stays Pending until CNI plugin is deployed
 > kubectl get pods -A
 NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE
-kube-system   coredns-76f75df574-75r5m               0/1     Pending   0          4m3s
-kube-system   coredns-76f75df574-hcqgr               0/1     Pending   0          4m3s
-kube-system   etcd-tomoyafujita                      1/1     Running   4          4m16s
+kube-system   coredns-xxxxxxxxxx-xxxxx               0/1     Pending   0          4m3s
+kube-system   coredns-xxxxxxxxxx-xxxxx               0/1     Pending   0          4m3s
+kube-system   etcd-tomoyafujita                      1/1     Running   0          4m16s
 kube-system   kube-apiserver-tomoyafujita            1/1     Running   0          4m16s
 kube-system   kube-controller-manager-tomoyafujita   1/1     Running   0          4m17s
-kube-system   kube-proxy-6bd64                       1/1     Running   0          4m3s
+kube-system   kube-proxy-xxxxx                       1/1     Running   0          4m3s
 kube-system   kube-scheduler-tomoyafujita            1/1     Running   0          4m16s
 ```
 
@@ -115,29 +120,25 @@ kube-system   kube-scheduler-tomoyafujita            1/1     Running   0        
 We need to do this procedure for all worker nodes to join the cluster system.
 
 ```bash
+> sudo su -
 > swapoff -a
 
-> docker info | grep Cgroup
- Cgroup Driver: systemd
- Cgroup Version: 2
+> grep SystemdCgroup /etc/containerd/config.toml
+      SystemdCgroup = true
 
 > kubeadm version
-kubeadm version: &version.Info{Major:"1", Minor:"29", GitVersion:"v1.29.13", GitCommit:"9a58e9398d4aa69d7ad40f40407e54b96025e0c5", GitTreeState:"clean", BuildDate:"2025-01-15T14:41:15Z", GoVersion:"go1.22.10", Compiler:"gc", Platform:"linux/amd64"}
+kubeadm version: &version.Info{Major:"1", Minor:"37", GitVersion:"v1.37.0", ...}
 
-> cat /etc/docker/daemon.json
-{
-    "exec-opts": ["native.cgroupdriver=systemd"]
-}
-
-> systemctl restart docker
-> kubeadm join <YOUR_IP_ADDRESS>:6443 --token <YOUR_TOKEN> --discovery-token-ca-cert-hash <YOUR_HASH>  --cri-socket unix:///var/run/containerd/containerd.sock
+> kubeadm join <YOUR_IP_ADDRESS>:6443 --token <YOUR_TOKEN> --discovery-token-ca-cert-hash <YOUR_HASH> --cri-socket unix:///run/containerd/containerd.sock
 [preflight] Running pre-flight checks
-[preflight] Reading configuration from the cluster...
-[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+[preflight] Use 'kubeadm init phase upload-config --config your-config.yaml' to re-upload it.
 [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
 [kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
 [kubelet-start] Starting the kubelet
-[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+[kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+[kubelet-check] The kubelet is healthy after 1.00xxxxxs
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap
 
 This node has joined the cluster:
 * Certificate signing request was sent to apiserver and a response was received.
@@ -146,7 +147,7 @@ This node has joined the cluster:
 Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 
-Check the node availability on master node.
+Check the node availability on control-plane node.
 
 ```bash
 ### check node status
@@ -156,84 +157,101 @@ Check the node availability on master node.
 ## Deploy CNI plugin
 
 To get cluster nodes ready, we need to deploy CNI plugin as pods.
-Here it describes install / uninstall CNI plugins via `kubectl`, CNI plugins are managed under kubernetes pods as well.
+Here it describes install / uninstall CNI plugins via `cilium` CLI or `kubectl`, CNI plugins are managed under kubernetes pods as well.
 
 ### [Cilium](https://cilium.io/)
 
-You can refer to [Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick) for Kubernetes if needed.
+You can refer to [Quick Installation](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/) for Kubernetes if needed.
 
 #### Install Cilium CLI
 
-This operation is only requires once for master node.
+This operation is only required once for control-plane node (or wherever `kubectl` can access the cluster).
 The Cilium CLI can be used to install Cilium, inspect the state of a Cilium installation, and enable/disable various features.
 
 ```bash
 > sudo su -
-[sudo] password for tomoyafujita:
 > cd <repo>/scripts
 > ./install_cilium_cli.sh
 ...<snip>
 Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
+cilium-cli: v0.18.x compiled with go1.2x.x on linux/amd64
 ```
 
 #### Install Cilium CNI to the Kubernetes Cluster
 
 ```bash
 > cilium version
-cilium-cli: v0.16.24 compiled with go1.23.4 on linux/amd64
-cilium image (default): v1.16.6
-cilium image (stable): v1.16.6
+cilium-cli: v0.18.x compiled with go1.2x.x on linux/amd64
+cilium image (default): v1.20.2
+cilium image (stable): v1.20.2
 cilium image (running): unknown. Unable to obtain cilium version. Reason: release: not found
 
-> cilium install
-  Using Cilium version 1.16.6
+### Install Cilium with the default configuration (tunnel/vxlan routing mode)
+> cilium install --version 1.20.2
+🔮 Auto-detected Kubernetes kind: kubernetes
+ℹ️  Using Cilium version 1.20.2
 🔮 Auto-detected cluster name: kubernetes
 🔮 Auto-detected kube-proxy has been installed
+
+### Wait until Cilium is ready
+> cilium status --wait
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+...<snip>
+
+### Now the nodes become Ready
+> kubectl get nodes
 ```
 
 #### Enable Security Encryption
 
-Cilium provides security encryption feature either IPsec or Wireguard statically during initialization.
+Cilium provides security encryption feature either IPsec or WireGuard statically during initialization.
 Packets are not encrypted when they are destined to the same node from which they were sent. This behavior is intended.
 Encryption would provide no benefits in that case, given that the raw traffic can be observed on the node anyway.
-Encryption requires key, the following procedure uses Kubernetes Secret to bind the key for cilium encryption.
+IPsec encryption requires key, the following procedure uses Kubernetes Secret to bind the key for cilium encryption.
+see [IPsec Transparent Encryption](https://docs.cilium.io/en/stable/security/network/encryption-ipsec/) for more details.
+
+> [!NOTE]
+> Cilium multicast (used by ROS 2 / DDS discovery) does not work together with IPsec encryption between Cilium-managed pods.
 
 ```bash
 ### If cilium is already deployed, uninstall from cluster system
 > cilium uninstall
 
 ### Create Kubernetes Secret that is used for encryption
-> PSK=($(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64))
+### "+" after key-id is strongly recommended to enable per-tunnel keys (global keys are deprecated since v1.16)
+> PSK=$(dd if=/dev/urandom count=20 bs=1 2> /dev/null | xxd -p -c 64)
 
 > echo $PSK
 47b57a0241e4c5df0a196ccfbcc7ee1aff204100
 
-> kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3 rfc4106(gcm(aes)) $PSK 128"
+> kubectl create -n kube-system secret generic cilium-ipsec-keys --from-literal=keys="3+ rfc4106(gcm(aes)) $PSK 128"
 secret/cilium-ipsec-keys created
 
-> kubectl describe secret -n kube-system cilium-ipsec-keys
-Name:         cilium-ipsec-keys
-Namespace:    kube-system
-Labels:       <none>
-Annotations:  <none>
+> kubectl -n kube-system get secrets cilium-ipsec-keys
+NAME                TYPE     DATA   AGE
+cilium-ipsec-keys   Opaque   1      10s
 
-Type:  Opaque
-
-Data
-====
-keys:  64 bytes
-
-> SECRET="$(kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data}' -n kube-system | jq -r ".keys")"
-> echo $SECRET | base64 --decode
-3 rfc4106(gcm(aes)) 47b57a0241e4c5df0a196ccfbcc7ee1aff204100 128
+> kubectl get secrets cilium-ipsec-keys -o jsonpath='{.data.keys}' -n kube-system | base64 --decode
+3+ rfc4106(gcm(aes)) 47b57a0241e4c5df0a196ccfbcc7ee1aff204100 128
 
 ### Start deployment with enabling encryption
-> cilium install --encryption ipsec
+> cilium install --version 1.20.2 --set encryption.enabled=true --set encryption.type=ipsec
 
 ### Check IPsec is enabled
 > cilium config view | grep ipsec
 enable-ipsec                               true
 ipsec-key-file                             /etc/ipsec/keys
+
+> kubectl -n kube-system exec -ti ds/cilium -- cilium-dbg encrypt status
+Encryption: IPsec
+Decryption interface(s): eth0
+Keys in use: 2
+...<snip>
 ```
 
 #### Enable [Hubble Observability](https://github.com/cilium/hubble/)
@@ -242,18 +260,38 @@ Cilium also provides the observability component for gaining deep insights into 
 This also works with ROS and ROS 2 application containers.
 Hubble collects network flow data using eBPF and processes it to generate valuable insights, this data can be visualized and analyzed through the Hubble UI or using the Hubble CLI.
 
-We can just follow [Service Map & Hubble UI](https://docs.cilium.io/en/latest/gettingstarted/hubble/#hubble-ui) procedure to enable Hubble and the following graphical interface will come up.
+see [Service Map & Hubble UI](https://docs.cilium.io/en/stable/observability/hubble/hubble-ui/) for more details.
+
+```bash
+### Enable Hubble Relay and Hubble UI
+> cilium hubble enable --ui
+
+> cilium status
+...<snip>
+ /¯¯\__/¯¯\    Hubble Relay:       OK
+...<snip>
+
+### Port forward Hubble UI to http://localhost:12000
+> cilium hubble ui
+ℹ️  Opening "http://localhost:12000" in your browser...
+```
 
 ![Hubble GUI with ROS 2 application](./../images/ros2_hubble_observability.png)
 
 #### Enable Multicast
 
 > [!NOTE]
-> Currently multicast feature is only available in [cilium:main](https://github.com/cilium/cilium/tree/main) branch, still under development.
+> Cilium multicast is a **beta** feature, see [Multicast Support](https://docs.cilium.io/en/stable/network/multicast/) for the latest status and requirements.
 
-The current mainstream container network plug-ins (such as Calico and Cilium) do not natively support multicast, in addition to this, WeaveNet supports multicast, but entire open source project has gone end of life.
+The current mainstream container network plug-ins (such as Calico and Flannel) do not natively support multicast.
+Cilium is one of the most advanced container network plug-in supports multicast based on eBPF, which focuses on solving the problem of efficient multicast transmission in the container network.
+This allows ROS 2 / DDS (e.g. Fast DDS and Cyclone DDS) to discover the participants on the different cluster nodes using the well-known multicast group address without any extra configuration in the application containers.
 
-Cilium is one of the most advanced container network plug-in supports multicast (some features e.g IPsec are under progress.) based on eBPF focuses on solving the problem of efficient multicast transmission in the container network and provides support for multiple multicast protocols.
+Requirements:
+
+- Cilium runs in tunnel (`vxlan`) routing mode, which is the default of `cilium install`.
+- Linux kernel 5.10 or later on amd64, 6.0 or later on arm64 (Ubuntu 24.04 kernel 6.8 satisfies both).
+- IPsec encryption is not supported together with multicast.
 
 In default Cilium multicast feature is disabled, so we need to walk through the following configuration.
 
@@ -264,7 +302,8 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
 
   ```bash
   ### Check vxlan mode is enabled
-  > kubectl get configmap cilium-config -n kube-system -o yaml | grep vxlan
+  > kubectl get configmap cilium-config -n kube-system -o yaml | grep -E 'routing-mode|tunnel-protocol'
+    routing-mode: tunnel
     tunnel-protocol: vxlan
 
   ### Enable multicast feature
@@ -273,23 +312,42 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   ♻️  Restarted Cilium pods
   ```
 
-- Configure Multicast Group IP addresses and Subscribers (Manually)
+- Configure Multicast Group and Subscribers using Cilium CLI (Recommended)
 
   To use multicast with Cilium, we need to configure multicast group and subscriber IP addresses based on the application requirement.
   ROS 2 (DDS) well-known multicast group IP address is `239.255.0.1`.
 
-  **For each cilium pod**, we need to configure multicast groups.
+  If it's a cluster-wide operation, there's no need to perform operations on each cilium pod individually, `cilium multicast` command configures the group and subscribers on all nodes at once.
+
+  ```bash
+  # make all nodes join the specified multicast group
+  > cilium multicast add --group-ip 239.255.0.1
+  #cilium multicast delete --group-ip 239.255.0.1
+
+  # confirm the multicast groups and subscribers
+  > cilium multicast list group
+  > cilium multicast list subscriber --all
+  Node                 Group         Subscriber     Type
+  kind-worker          239.255.0.1   10.244.0.196   Remote Node
+  kind-control-plane   239.255.0.1   10.244.1.122   Remote Node
+  ```
+
+- Configure Multicast Group and Subscribers (Manually)
+
+  **For each cilium pod**, we can also configure multicast groups and subscribers manually.
   The following commands need to be issued in `cilium` pods, there should be `cilium-dbg` command to access `cilium-agent`.
 
   ```bash
+  > kubectl -n kube-system exec -ti <cilium-pod-on-the-node> -- bash
   > cilium-dbg bpf multicast group add 239.255.0.1
   > cilium-dbg bpf multicast group list
   Group Address
   239.255.0.1
-  #cilium-dbg bpf multicast group delete
+  #cilium-dbg bpf multicast group delete 239.255.0.1
   ```
 
   Then we need to configure group subscriber IP addresses to that group from `CILIUMINTERNALIP` below.
+  Subscriber IP addresses are the CiliumNode IP addresses of the **other** nodes, not the node's own IP address.
 
   ```bash
   > kubectl get ciliumnodes.cilium.io
@@ -297,9 +355,6 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   kind-control-plane   10.244.0.72        172.19.0.2   16m
   kind-worker          10.244.1.86        172.19.0.3   16m
   ```
-
-  **For each cilium pod**, we need to configure subscriber IP addresses to group.
-  The following commands need to be issued in `cilium` pods, there should be `cilium-dbg` command to access `cilium-agent`.
 
   ```bash
   # On kind-control-plane
@@ -315,161 +370,39 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   cilium-dbg bpf multicast subscriber list all
   ```
 
-  These `cilium-dbg` commands are available in the cilium version 1.16.0 or later.
-
-- Simplified configuration about Multicast Groups and Subscribers using Cilium CLI
-
-  If it's a cluster-wide operation, there's no need to perform operations on each cilium pod individually.
-  This feature is available in the cilium-cli version `0.16.14` or later.
-
-  To make all nodes join a specified multicast group, use the `cilium multicast` command. 
-  ```bash
-  # make all nodes join the specified multicast group
-  > cilium multicast add --group-ip 239.255.0.1
-  #cilium multicast delete --group-ip 239.255.0.1
-  ```
-
-  You can also get information about multicast groups and subscribers cluster-wide.
-  ```bash
-  # confirm the multicast groups and subscribers
-  > cilium multicast list subscriber --all
-  Node                 Group         Subscriber     Type
-  kind-worker          239.255.0.1   10.244.0.196   Remote Node
-  kind-control-plane   239.255.0.1   10.244.1.122   Remote Node
-  ```
-
-- Related PRs
+- Related Issues and Pull Requests
   - Issues
     - https://github.com/cilium/cilium/issues/13239, https://github.com/cilium/cilium/issues/28750
-    - https://github.com/cilium/cilium/issues/29471 (Multicast IPSec Support, tracking issue)
+    - https://github.com/cilium/cilium/issues/29471 (Multicast IPsec Support, tracking issue)
   - Design CFP
     - https://github.com/cilium/design-cfps/pull/20
   - Pull Requests
     - https://github.com/cilium/cilium/pull/29469
     - https://github.com/cilium/cilium/pull/31355
 
+#### Uninstall Cilium
+
+```bash
+> cilium uninstall
+```
+
 ### [Flannel](https://github.com/flannel-io/flannel)
+
+Flannel is a simple layer 3 overlay network that does not support multicast, so it can be used for ROS 1 or ROS 2 with unicast discovery (e.g. Fast DDS Discovery Server).
+`kubeadm init` requires `--pod-network-cidr=10.244.0.0/16` for the default Flannel configuration.
 
 ```bash
 ### Install
-> kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+> kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 namespace/kube-flannel created
+serviceaccount/flannel created
 clusterrole.rbac.authorization.k8s.io/flannel created
 clusterrolebinding.rbac.authorization.k8s.io/flannel created
-serviceaccount/flannel created
 configmap/kube-flannel-cfg created
 daemonset.apps/kube-flannel-ds created
 
 ### Uninstall
-> kubectl delete -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
-```
-
-### [WeaveNet](https://github.com/weaveworks/weave) **(E.O.L)**
-
-#### Start/Stop WeaveNet DaemonSets
-
-```bash
-### Install
-> kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
-### Uninstall
-> kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s-1.11.yaml
-```
-
-Originally latest images should be applied for weave deployment, but latest image tag does not support arm64 multi-arch.
-This problem is issued on https://github.com/weaveworks/weave/issues/3976, and after this problem (docker image multi-arch support for arm64) has been addressed, we should use the latest deployment file.
-
-```bash
-### Install
-> kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-### Uninstall
-> kubectl delete -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
-```
-
-#### [WeaveScope](https://github.com/weaveworks/scope) **(E.O.L)**
-
-Weave also provides a powerful visualization and monitoring tool specifically designed for Docker and Kubernetes environments called scope.
-
-```bash
-### Install
-> kubectl apply -f https://github.com/weaveworks/scope/releases/download/v1.13.2/k8s-scope.yaml
-### Uninstall
-> kubectl delete -f https://github.com/weaveworks/scope/releases/download/v1.13.2/k8s-scope.yaml
-```
-
-By default, weavescope uses Cluster IP address, so we need to `port-forward` it to the node IP address and port.
-
-```bash
-> kubectl port-forward svc/weave-scope-app -n weave 4040:80 --address YOUR_NODE_IP
-```
-
-and then, you should see the following UI via `http://<YOUR_NODE_IP>:4040/`
-
-![WeaveScope Web UI](./../images/weavescope.png)
-
-#### Security Encryption
-
-WeaveNet provides authentication and encryption based on password, which is used for create session keys for the communication between peers.
-WeaveNet uses fast datapath via Kernel OpenVswitch, and IPsec ESP can be enabled statically before any application pods are created.
-
-```bash
-> curl -L git.io/weave -o /usr/local/bin/weave
-> chmod a+x /usr/local/bin/weave
-
-### Weave CLI installs docker container to connect weavenet daemon to execute the command
-> weave status
-
-        Version: 2.8.1 (failed to check latest version - see logs; next check at 2023/03/05 01:37:01)
-
-        Service: router
-      Protocol: weave 1..2
-          Name: 16:8b:92:14:73:c4(tomoyafujita-hp-compaq-elite-8300-sff)
-    Encryption: disabled
-  PeerDiscovery: enabled
-        Targets: 1
-    Connections: 1 (1 established)
-          Peers: 2 (with 2 established connections)
-TrustedSubnets: none
-
-        Service: ipam
-        Status: ready
-          Range: 10.32.0.0/12
-  DefaultSubnet: 10.32.0.0/12
-```
-
-As we can see above, WeaveNet does not enable encryption by default.
-Adding environmental variable with your own password can enable WeaveNet encryption, the following shows how to do so via Kubernetes Secret. (which can be bound to application pods at initialization.)
-
-```bash
-> openssl rand -hex 128 > weave-passwd
-
-> kubectl create secret -n kube-system generic weave-passwd --from-file=./weave-passwd
-secret/weave-passwd created
-
-> kubectl describe secret -n kube-system weave-passwd
-Name:         weave-passwd
-Namespace:    kube-system
-Labels:       <none>
-Annotations:  <none>
-
-Type:  Opaque
-
-Data
-====
-weave-passwd:  257 bytes
-
-> kubectl edit --namespace=kube-system daemonset weave-net
-daemonset.apps/weave-net edited
-
-### add the following under `spec.template.spec.containers`
-env:
-- name: WEAVE_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: weave-passwd
-      key: weave-passwd
-
-> weave status | grep Encryption
-    Encryption: enabled
+> kubectl delete -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 ```
 
 ## Headlamp Dashboard
@@ -562,16 +495,19 @@ Now you should be able to see the Kubernetes cluster overview on Headlamp.
 
 ## Break down the cluster
 
-the following command needs to be issues on each node in the cluster system.
+the following command needs to be issued on each node in the cluster system.
 
 ```bash
+### Uninstall CNI plugin first if cilium is deployed (on control-plane)
+cilium uninstall
+
 ### Reset the node
-kubeadm reset -f --cri-socket unix:///var/run/containerd/containerd.sock
+kubeadm reset -f --cri-socket unix:///run/containerd/containerd.sock
 rm -rf $HOME/.kube/config
 
 ### CNI conflist will be re-created by CNI installation.
 rm -rf /etc/cni/net.d
 
-### If WeaveNet CNI was deployed
-rm -rf /var/lib/weave
+### Flush iptables rules created by kube-proxy and CNI (optional)
+iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
 ```

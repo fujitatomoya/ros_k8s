@@ -19,8 +19,9 @@ spec:
         tty: true
         name: ros2-talker-1
         env:
-          - name: ROS_LOCALHOST_ONLY
-            value: "1"
+          # ROS_LOCALHOST_ONLY=1 is deprecated since ROS 2 Iron, use ROS_AUTOMATIC_DISCOVERY_RANGE instead.
+          - name: ROS_AUTOMATIC_DISCOVERY_RANGE
+            value: "LOCALHOST"
       - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
         args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_py listener"]
@@ -28,12 +29,9 @@ spec:
         tty: true
         name: ros2-listener-1
         env:
-          - name: ROS_LOCALHOST_ONLY
-            value: "1"
+          - name: ROS_AUTOMATIC_DISCOVERY_RANGE
+            value: "LOCALHOST"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -62,8 +60,8 @@ spec:
         tty: true
         name: ros2-talker-2
         env:
-          - name: ROS_LOCALHOST_ONLY
-            value: "1"
+          - name: ROS_AUTOMATIC_DISCOVERY_RANGE
+            value: "LOCALHOST"
       - image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
         args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp listener"]
@@ -71,12 +69,9 @@ spec:
         tty: true
         name: ros2-listener-2
         env:
-          - name: ROS_LOCALHOST_ONLY
-            value: "1"
+          - name: ROS_AUTOMATIC_DISCOVERY_RANGE
+            value: "LOCALHOST"
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

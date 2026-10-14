@@ -1,9 +1,27 @@
 # Build Docker Images
 
-Based on `ros:noetic` (ROS 1) and `ros:rolling` (ROS 2), we will build full ROS / ROS 2 docker images and upload those images to [dockerhub](https://hub.docker.com/).
+Based on the official ROS docker images, we will build full ROS / ROS 2 docker images and upload those images to [dockerhub](https://hub.docker.com/).
 The reason to build full docker images for ROS and ROS 2 is basic container images do not include useful samples or examples packages, docker images with full packages can be very useful for container application on Kubernetes cluster system.
 
+| Image | Base Image | Ubuntu | Note |
+| --- | --- | --- | --- |
+| `ros:noetic` | [ros:noetic](https://hub.docker.com/_/ros) | 20.04 | ROS 1, **EOL May 2025** |
+| `ros:jazzy` | [ros:jazzy](https://hub.docker.com/_/ros) | 24.04 | ROS 2 LTS, EOL May 2029 |
+| `ros:rolling` | [ros:rolling](https://hub.docker.com/_/ros) | 26.04 | ROS 2 development distribution |
+
 To build and upload all ROS container images, you can use [build_docker_images.sh](../scripts/build_docker_images.sh).
+
+```bash
+### Build and upload the images for the host architecture
+> export DOCKERHUB_USERNAME="<your dockerhub username>"
+> ./scripts/build_docker_images.sh
+
+### Build and upload the images, and update the multi-arch manifest
+> ./scripts/build_docker_images.sh -m
+
+### Build and upload multi-arch (amd64/arm64) images at once with buildx
+> ./scripts/build_docker_images.sh -x
+```
 
 ## Setup Prerequisite
 
@@ -12,66 +30,41 @@ To build and upload all ROS container images, you can use [build_docker_images.s
 The following procedure requires [dockerhub](https://hub.docker.com/) access to download and upload built images.
 Kubernetes can pull the container images from [dockerhub](https://hub.docker.com/) in default, but it also can be specified with private registry if necessary.
 We must have account [DockerHub](https://hub.docker.com/), if you do not have one, create account.
-Then, make sure [docker login](https://docs.docker.com/engine/reference/commandline/login/) works okay as following.
+Then, make sure [docker login](https://docs.docker.com/reference/cli/docker/login/) works okay as following.
 
 ```bash
 > docker login
-Authenticating with existing credentials...
-WARNING! Your password will be stored unencrypted in /home/tomoyafujita/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
-
+...<snip>
 Login Succeeded
 ```
 
-see https://docs.docker.com/engine/reference/commandline/login/ for detail.
+see https://docs.docker.com/reference/cli/docker/login/ for detail.
 
-### ~~Install [Docker buildx](https://docs.docker.com/build/install-buildx/)~~
+### [Docker buildx](https://docs.docker.com/build/concepts/overview/) (Multi-Arch Build)
 
-**Since `docker buildx` is under development and still experimental phase, this is not recommended.**
-
-To build multi-arch container image for amd64 and arm64, `docker buildx` needs to be enabled.
-On Linux platform such as Ubuntu, `docker buildx` is under experimental so it needs to be installed manually.
-See https://github.com/docker/buildx#linux-packages to download the executable binary statically linked.
+`docker buildx` is included in Docker Engine as `docker-buildx-plugin` package, see [Install Kubernetes Packages](./Install_Kubernetes_Packages.md#docker--containerd).
+To build multi-arch container image for amd64 and arm64 on the single host system, QEMU user-mode emulation and a `docker-container` builder are required.
 
 ```bash
+> docker buildx version
+github.com/docker/buildx v0.2x.x xxxxxxx
 
-> mkdir ~/.docker/cli-plugins
-> mv Downloads/buildx-v0.10.1.linux-amd64 ~/.docker/cli-plugins
-> chmod +x ~/.docker/cli-plugins/buildx-v0.10.1.linux-amd64
-> ls -lt ~/.docker/cli-plugins
-total 48M
--rwxrwxr-x 1 tomoyafujita tomoyafujita 47M Jan 26 22:30 buildx-v0.10.1.linux-amd64*
-> mv ~/.docker/cli-plugins/buildx-v0.10.1.linux-amd64 ~/.docker/cli-plugins/docker-buildx
-> docker buildx
+### Install QEMU emulators for the foreign architectures
+> docker run --privileged --rm tonistiigi/binfmt --install all
 
-Usage:  docker buildx [OPTIONS] COMMAND
-
-Extended build capabilities with BuildKit
-
-Options:
-      --builder string   Override the configured builder instance
-
-Management Commands:
-  imagetools  Commands to work on images in registry
-
-Commands:
-  bake        Build from a file
-  build       Start a build
-  create      Create a new builder instance
-  du          Disk usage
-  inspect     Inspect current builder instance
-  ls          List builder instances
-  prune       Remove build cache
-  rm          Remove a builder instance
-  stop        Stop builder instance
-  use         Set the current builder instance
-  version     Show buildx version information
-
-Run 'docker buildx COMMAND --help' for more information on a command.
+### Create multi-arch builder
+> docker buildx create --name multiarch --driver docker-container --use
+> docker buildx inspect --bootstrap
+...<snip>
+Platforms: linux/amd64, linux/arm64, ...
 ```
 
+Building the foreign architecture image with QEMU is much slower than the native build, building the images on each native platform and creating the manifest (described below) is the alternative.
+
 ## ROS Noetic
+
+> [!WARNING]
+> ROS Noetic reached end of life in May 2025, `ros:noetic` base image is no longer updated.
 
 The following operation needs to be done for each platform architecture, for example amd64 and arm64.
 
@@ -89,11 +82,11 @@ docker.io/library/ros:noetic
 
 ```bash
 > export DOCKERHUB_USERNAME="tomoyafujita"
-> export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+> export ARCH=$(dpkg --print-architecture)
 > echo $ARCH
 amd64
-> cd ros_k8s/docker/
-> docker build --rm -f Dockerfile.noetic -t $DOCKERHUB_USERNAME/ros:noetic-$ARCH .
+> cd ros_k8s/
+> docker build --rm -f ./docker/Dockerfile.noetic -t $DOCKERHUB_USERNAME/ros:noetic-$ARCH .
 ...<snip>
 ```
 
@@ -122,6 +115,19 @@ amd64
 > docker pull $DOCKERHUB_USERNAME/ros:noetic
 ```
 
+## ROS Jazzy
+
+ROS 2 Jazzy Jalisco is the LTS distribution based on Ubuntu 24.04, which is the same Ubuntu release with the host system in this tutorial.
+The procedure is the same with ROS Rolling below, just replace `rolling` with `jazzy`.
+
+```bash
+> docker pull ros:jazzy
+> docker build --rm -f ./docker/Dockerfile.jazzy -t $DOCKERHUB_USERNAME/ros:jazzy-$ARCH .
+> docker push $DOCKERHUB_USERNAME/ros:jazzy-$ARCH
+> docker manifest create $DOCKERHUB_USERNAME/ros:jazzy $DOCKERHUB_USERNAME/ros:jazzy-amd64 --amend $DOCKERHUB_USERNAME/ros:jazzy-arm64
+> docker manifest push $DOCKERHUB_USERNAME/ros:jazzy
+```
+
 ## ROS Rolling
 
 The following operation needs to be done for each platform architecture, for example amd64 and arm64.
@@ -130,21 +136,21 @@ The following operation needs to be done for each platform architecture, for exa
 
 ```bash
 > docker pull ros:rolling
-noetic: Pulling from library/ros
-Digest: sha256:ab5d0ba8771862f65925511a61f212c7623e8b020d05fd391611b6071e0e43c2
-Status: Image is up to date for ros:noetic
-docker.io/library/ros:noetic
+rolling: Pulling from library/ros
+Digest: sha256:...
+Status: Image is up to date for ros:rolling
+docker.io/library/ros:rolling
 ```
 
 - Build desktop image
 
 ```bash
 > export DOCKERHUB_USERNAME="tomoyafujita"
-> export ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+> export ARCH=$(dpkg --print-architecture)
 > echo $ARCH
 amd64
-> cd ros_k8s/docker/
-> docker build --rm -f Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros:rolling-$ARCH .
+> cd ros_k8s/
+> docker build --rm -f ./docker/Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros:rolling-$ARCH .
 ...<snip>
 ```
 
@@ -171,6 +177,21 @@ amd64
 
 ```bash
 > docker pull $DOCKERHUB_USERNAME/ros:rolling
+```
+
+## Multi-Arch Build with buildx
+
+Instead of building the image on each platform and creating the manifest manually, `docker buildx` can build and push the multi-arch image at once.
+
+```bash
+> docker buildx build --platform linux/amd64,linux/arm64 -f ./docker/Dockerfile.rolling -t $DOCKERHUB_USERNAME/ros:rolling --push .
+> docker buildx imagetools inspect $DOCKERHUB_USERNAME/ros:rolling
+Name:      docker.io/tomoyafujita/ros:rolling
+MediaType: application/vnd.oci.image.index.v1+json
+...<snip>
+  Platform:  linux/amd64
+...<snip>
+  Platform:  linux/arm64
 ```
 
 ## Verify Images

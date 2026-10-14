@@ -24,8 +24,10 @@ spec:
         tty: true
         image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery --server-id 0 --port 11811"]
-        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery --server-id 0 --port 11811 --backup"]
+        # Fast DDS 3.x (ROS 2 Jazzy or later): --server-id is deprecated, -p is the UDP listening port.
+        # see https://fast-dds.docs.eprosima.com/en/latest/fastddscli/cli/cli.html#discovery
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery -p 11811"]
+        #args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery -p 11811 --backup"]
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 11811
@@ -33,9 +35,6 @@ spec:
       nodeSelector:
         node-role.kubernetes.io/control-plane: ""
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -86,7 +85,7 @@ spec:
         tty: true
         image: tomoyafujita/ros:rolling
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery --server-id 1 --port 11888"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && fastdds discovery -p 11888"]
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 11888
@@ -94,9 +93,6 @@ spec:
       nodeSelector:
         node-role.kubernetes.io/control-plane: ""
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -118,5 +114,3 @@ spec:
   #  - port: 11888
   selector:
     node: server-secondary
-
----

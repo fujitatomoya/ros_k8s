@@ -22,9 +22,6 @@ spec:
       #nodeSelector:
       #  nodetype: ubuntu
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -56,9 +53,6 @@ spec:
       #nodeSelector:
       #  nodetype: tomoyafujita-hp-compaq-elite-8300-sff
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -91,9 +85,6 @@ spec:
       #nodeSelector:
       #  nodetype: ubuntu
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -125,9 +116,6 @@ spec:
       #nodeSelector:
       #  nodetype: tomoyafujita-hp-compaq-elite-8300-sff
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -159,9 +147,6 @@ spec:
       #nodeSelector:
       #  nodetype: ubuntu
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -193,9 +178,6 @@ spec:
       #nodeSelector:
       #  nodetype: tomoyafujita-hp-compaq-elite-8300-sff
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

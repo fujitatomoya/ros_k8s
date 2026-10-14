@@ -4,7 +4,12 @@ This section provides several example deployments, starting with basic deploymen
 
 ## ROS Noetic Demonstration
 
-For ROS Noetic, we can use any CNI implementation (Flannel/Weave/Cilium).
+> [!WARNING]
+> [ROS Noetic](http://wiki.ros.org/noetic) (Ubuntu 20.04 based) reached end of life in May 2025, and it is no longer maintained.
+> The following examples are kept for the reference, `tomoyafujita/ros:noetic` container image still works on the latest Kubernetes cluster since container images are agnostic from the host system.
+> It is highly recommended to migrate to ROS 2, see [ROS 2 Deployment Demonstration](./ROS2_Deployment_Demonstration.md).
+
+For ROS Noetic, we can use any CNI implementation (Flannel/Cilium).
 This is because that ROS Noetic network is based on TCP/UDP IP network w/o multicast.
 
 ### ROS DaemonSet Deployment with CNI
@@ -23,16 +28,16 @@ We can even jump in any containers running in Kubernetes Pods in the cluster to 
 
 ### Check if deployment running as expected
 > kubectl get pods -o wide
-NAME                   READY   STATUS    RESTARTS   AGE   IP          NODE                                    NOMINATED NODE   READINESS GATES
-ros1-deamonset-67wdh   3/3     Running   0          14m   10.36.0.0   ubuntu                                  <none>           <none>
-ros1-deamonset-6zcj8   3/3     Running   0          14m   10.32.0.6   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+NAME                   READY   STATUS    RESTARTS   AGE   IP           NODE                                    NOMINATED NODE   READINESS GATES
+ros1-deamonset-67wdh   3/3     Running   0          14m   10.244.1.2   ubuntu                                  <none>           <none>
+ros1-deamonset-6zcj8   3/3     Running   0          14m   10.244.0.6   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
 
 ### Jump in containers via kubernetes and play
 > echo $(kubectl get pods ros1-deamonset-67wdh -o jsonpath='{.spec.containers[*].name}')
 ros1-master ros1-talker ros1-listener
 
 > kubectl exec --stdin --tty ros1-deamonset-67wdh --container ros1-master -- /bin/bash
-root@ros1-deamonset-67wdh:/# source /opt/ros/noetic/setup.bash 
+root@ros1-deamonset-67wdh:/# source /opt/ros/noetic/setup.bash
 root@ros1-deamonset-67wdh:/# rosnode list
 /rosout
 /rostopic_1_1675410564546
@@ -64,7 +69,7 @@ This example deploys distributed system with ROS, application containers will be
 In this case, rosmaster will be running on one of the cluster node, and other ROS application container will be connecting to that rosmaster as distributed application.
 
 Accessing rosmaster requires ROS nodes to know the rosmaster IP address to participate to ROS network.
-Most likely user sets the environmental variable before starting the application, but problem here is we do not know what IP address is assigned to rosmater container from kubernetes until it deploys application.
+Most likely user sets the environmental variable before starting the application, but problem here is we do not know what IP address is assigned to rosmaster container from kubernetes until it deploys application.
 Against this problem, it takes advantage of `Headless Service` so that application pods can DNS the hostname based on that service name, whose backend is corresponding application pods.
 
 **see deployment description [ROS Multiple Node Deployment](./../yaml/ros1-multinode.yaml)**
@@ -79,8 +84,8 @@ To manage the fleet, here it adds the label to each node, which also used in the
 ### Show labels
 > kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
-ubuntu                                  Ready    <none>          116m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+ubuntu                                  Ready    <none>          116m   v1.37.0   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
 
 ### Add labels
 > kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
@@ -89,8 +94,8 @@ ubuntu                                  Ready    <none>          116m   v1.25.5 
 ### Check labels
 > kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
-ubuntu                                  Ready    <none>          125m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
+ubuntu                                  Ready    <none>          125m   v1.37.0   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
 ```
 
 - ROS 1 Deployment and Check
@@ -107,10 +112,10 @@ service/ros-listener created
 
 ### Check service and pods are running
 > kubectl get pods -o wide
-NAME                                   READY   STATUS    RESTARTS   AGE   IP          NODE                                    NOMINATED NODE   READINESS GATES
-listener-deployment-5db88c77cf-79plx   1/1     Running   0          29m   10.32.0.5   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
-roscore-deployment-5564978d47-bg4sj    1/1     Running   0          29m   10.32.0.4   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
-talker-deployment-b468d7b5-2tf7k       1/1     Running   0          29m   10.44.0.1   ubuntu                                  <none>           <none>
+NAME                                   READY   STATUS    RESTARTS   AGE   IP           NODE                                    NOMINATED NODE   READINESS GATES
+listener-deployment-5db88c77cf-79plx   1/1     Running   0          29m   10.244.0.5   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+roscore-deployment-5564978d47-bg4sj    1/1     Running   0          29m   10.244.0.4   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+talker-deployment-b468d7b5-2tf7k       1/1     Running   0          29m   10.244.1.1   ubuntu                                  <none>           <none>
 
 > kubectl get services -o wide
 NAME           TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE    SELECTOR
@@ -165,6 +170,9 @@ The main difference that this tutorial has is to bind `Host Network Interface` t
 
 **see deployment description [ROS Multiple Node Deployment](./../yaml/ros1-multinode-hostnic.yaml)**
 
+> [!NOTE]
+> `ROS_MASTER_URI` in [ros1-multinode-hostnic.yaml](./../yaml/ros1-multinode-hostnic.yaml) must be replaced with the hostname (or IP address) of the node labeled `nodetype=master`, since `roscore` is bound to the host network interface.
+
 ![ROS noetic Multiple Node Deployment](./../images/ros1_multiple_node_hostnic.png)
 
 - Add labeling to cluster nodes.
@@ -175,8 +183,8 @@ To target the containers to specific nodes, it also adds the label to each node,
 ### Show labels
 > kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
-ubuntu                                  Ready    <none>          116m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   118m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+ubuntu                                  Ready    <none>          116m   v1.37.0   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux
 
 ### Add labels
 > kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=master
@@ -185,8 +193,8 @@ ubuntu                                  Ready    <none>          116m   v1.25.5 
 ### Check labels
 > kubectl get nodes --show-labels
 NAME                                    STATUS   ROLES           AGE    VERSION   LABELS
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.25.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
-ubuntu                                  Ready    <none>          125m   v1.25.5   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
+tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   126m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=master
+ubuntu                                  Ready    <none>          125m   v1.37.0   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=worker
 ```
 
 - ROS 1 Deployment and Check
@@ -235,4 +243,10 @@ root@tomoyafujita-HP-Compaq-Elite-8300-SFF:/# rosnode list
 /listener_1_1676011121015
 /rosout
 /talker
+```
+
+- Stop deployment
+
+```bash
+> kubectl delete -f ./yaml/ros1-multinode-hostnic.yaml
 ```

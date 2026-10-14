@@ -37,9 +37,6 @@ spec:
           path: /tmp/.X11-unix
           type: Directory # host should have this always
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -86,9 +83,6 @@ spec:
           path: /tmp/.X11-unix
           type: Directory # host should have this always
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
@@ -122,9 +116,6 @@ spec:
       nodeSelector:
         nodetype: edgedevice
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
