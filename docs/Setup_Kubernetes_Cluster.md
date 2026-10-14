@@ -174,15 +174,15 @@ The Cilium CLI can be used to install Cilium, inspect the state of a Cilium inst
 > ./install_cilium_cli.sh
 ...<snip>
 Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable.
-cilium-cli: v0.18.x compiled with go1.2x.x on linux/amd64
+cilium-cli: v0.20.1 compiled with go1.27.1 on linux/amd64
 ```
 
 #### Install Cilium CNI to the Kubernetes Cluster
 
 ```bash
 > cilium version
-cilium-cli: v0.18.x compiled with go1.2x.x on linux/amd64
-cilium image (default): v1.20.2
+cilium-cli: v0.20.1 compiled with go1.27.1 on linux/amd64
+cilium image (default): v1.20.1
 cilium image (stable): v1.20.2
 cilium image (running): unknown. Unable to obtain cilium version. Reason: release: not found
 
@@ -322,14 +322,26 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   ```bash
   # make all nodes join the specified multicast group
   > cilium multicast add --group-ip 239.255.0.1
+  Added 2 nodes (kind-control-plane, kind-worker2) to multicast group 239.255.0.1 in kind-worker
+  Added 2 nodes (kind-worker, kind-worker2) to multicast group 239.255.0.1 in kind-control-plane
+  Added 2 nodes (kind-control-plane, kind-worker) to multicast group 239.255.0.1 in kind-worker2
   #cilium multicast delete --group-ip 239.255.0.1
 
   # confirm the multicast groups and subscribers
   > cilium multicast list group
+  Node                 Group
+  kind-worker          239.255.0.1
+  kind-worker2         239.255.0.1
+  kind-control-plane   239.255.0.1
+
   > cilium multicast list subscriber --all
-  Node                 Group         Subscriber     Type
-  kind-worker          239.255.0.1   10.244.0.196   Remote Node
-  kind-control-plane   239.255.0.1   10.244.1.122   Remote Node
+  Node                 Group         Subscriber    Type
+  kind-worker          239.255.0.1   10.244.2.43   Remote Node
+                                     10.244.0.23   Remote Node
+  kind-worker2         239.255.0.1   10.244.0.23   Remote Node
+                                     10.244.1.25   Remote Node
+  kind-control-plane   239.255.0.1   10.244.1.25   Remote Node
+                                     10.244.2.43   Remote Node
   ```
 
 - Configure Multicast Group and Subscribers (Manually)
@@ -352,21 +364,29 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
   ```bash
   > kubectl get ciliumnodes.cilium.io
   NAME                 CILIUMINTERNALIP   INTERNALIP   AGE
-  kind-control-plane   10.244.0.72        172.19.0.2   16m
-  kind-worker          10.244.1.86        172.19.0.3   16m
+  kind-control-plane   10.244.0.23        172.18.0.3   36s
+  kind-worker          10.244.1.25        172.18.0.2   39s
+  kind-worker2         10.244.2.43        172.18.0.4   36s
   ```
 
   ```bash
   # On kind-control-plane
-  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.1.86
-  #cilium-dbg bpf multicast subscriber delete 239.255.0.1 10.244.1.86
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.1.25
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.2.43
+  #cilium-dbg bpf multicast subscriber delete 239.255.0.1 10.244.1.25
   cilium-dbg bpf multicast subscriber list all
   Group           Subscriber      Type
-  239.255.0.1     10.244.1.86     Remote Node
+  239.255.0.1     10.244.1.25     Remote Node
+                  10.244.2.43     Remote Node
 
   # On kind-worker
-  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.0.72
-  #cilium-dbg bpf multicast subscriber delete 239.255.0.1 10.244.0.72
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.0.23
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.2.43
+  cilium-dbg bpf multicast subscriber list all
+
+  # On kind-worker2
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.0.23
+  cilium-dbg bpf multicast subscriber add 239.255.0.1 10.244.1.25
   cilium-dbg bpf multicast subscriber list all
   ```
 
@@ -417,6 +437,24 @@ There are many monitoring workloads from other vendors, but Headlamp does good e
 
 See details for [Headlamp In-cluster Installation](https://headlamp.dev/docs/latest/installation/in-cluster/).
 
+### Create ServiceAccount
+
+Headlamp requires a token to log in.
+Here we create `headlamp-admin` ServiceAccount bound to `cluster-admin` ClusterRole, the name and namespace must match the `headlamp-admin` Secret that is created by the Headlamp manifest below.
+
+> [!IMPORTANT]
+> The ServiceAccount must be created **before** the Headlamp manifest.
+> The manifest creates `kubernetes.io/service-account-token` Secret for `headlamp-admin` ServiceAccount, and Kubernetes token controller deletes that Secret right away if the ServiceAccount does not exist yet.
+
+**see deployment description [Headlamp Admin ServiceAccount](./../yaml/headlamp-admin.yaml)**
+
+```bash
+### Create ServiceAccount and ClusterRoleBinding
+> kubectl apply -f ./yaml/headlamp-admin.yaml
+serviceaccount/headlamp-admin created
+clusterrolebinding.rbac.authorization.k8s.io/headlamp-admin created
+```
+
 ### Deploy Headlamp
 
 The following deploys Headlamp into `kube-system` namespace.
@@ -430,9 +468,16 @@ secret/headlamp-admin created
 
 ### Check Headlamp pod and service are running
 > kubectl get pods -n kube-system -l k8s-app=headlamp
-...<snip>
+NAME                        READY   STATUS    RESTARTS   AGE
+headlamp-65978d54db-9ljmh   1/1     Running   0          105s
 > kubectl get service -n kube-system headlamp
-...<snip>
+NAME       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+headlamp   ClusterIP   10.96.176.106   <none>        80/TCP    105s
+
+### Make sure the Secret is bound to the ServiceAccount (it is deleted if the ServiceAccount is missing)
+> kubectl -n kube-system get secret headlamp-admin
+NAME             TYPE                                  DATA   AGE
+headlamp-admin   kubernetes.io/service-account-token   3      105s
 ```
 
 The manifest above uses `ghcr.io/headlamp-k8s/headlamp:latest` image.
@@ -445,17 +490,7 @@ If you need to pin the Headlamp version, use [Helm chart](https://headlamp.dev/d
 
 ### Create ServiceAccount Token
 
-Headlamp requires a token to log in.
-Here we create `headlamp-admin` ServiceAccount bound to `cluster-admin` ClusterRole, the name and namespace must match the `headlamp-admin` Secret that is created by the manifest above.
-
-**see deployment description [Headlamp Admin ServiceAccount](./../yaml/headlamp-admin.yaml)**
-
 ```bash
-### Create ServiceAccount and ClusterRoleBinding
-> kubectl apply -f ./yaml/headlamp-admin.yaml
-serviceaccount/headlamp-admin created
-clusterrolebinding.rbac.authorization.k8s.io/headlamp-admin created
-
 ### Generate token to bind ServiceAccount
 > kubectl -n kube-system create token headlamp-admin --duration=8760h
 ...<snip>
@@ -489,8 +524,8 @@ Now you should be able to see the Kubernetes cluster overview on Headlamp.
 ### Uninstall Headlamp
 
 ```bash
-> kubectl delete -f ./yaml/headlamp-admin.yaml
 > kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/headlamp/main/kubernetes-headlamp.yaml
+> kubectl delete -f ./yaml/headlamp-admin.yaml
 ```
 
 ## Break down the cluster

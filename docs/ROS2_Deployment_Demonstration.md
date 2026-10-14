@@ -16,9 +16,10 @@ If we can be sure that RMW implementation does not rely on UDP multicast, we can
 Most likely this case applied to use case of [Fast DDS Discovery Server](./ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) or static peers (`ROS_STATIC_PEERS`) and so on, using TCP/UDP unicast packets.
 
 > [!NOTE]
-> `tomoyafujita/ros:rolling` container image is based on the official `ros:rolling` image, which is currently Ubuntu 26.04 based.
+> `tomoyafujita/ros:rolling` container image is built from the official `ros:rolling` image, which is currently Ubuntu 26.04 based.
 > Container images are agnostic from the host system, so that it can be deployed on Ubuntu 24.04 host system without any problems.
 > If you prefer the Ubuntu 24.04 based LTS distribution, build and use `ros:jazzy` instead, see [Build Docker Images](./Build_Docker_Images.md).
+> The following examples are verified with the images built from [Dockerfile.rolling](./../docker/Dockerfile.rolling) and [Dockerfile.jazzy](./../docker/Dockerfile.jazzy) on the kind cluster, see [Load local container images](./Setup_Virtualized_Cluster.md#multiple-node-cluster-setup) to use the locally built image in the kind cluster.
 
 ### ROS 2 Simple Distributed System
 
@@ -49,29 +50,34 @@ deployment.apps/ros2-listener-2 created
 deployment.apps/ros2-listener-3 created
 
 > kubectl get pods -o wide
-NAME                               READY   STATUS    RESTARTS      AGE   IP             NODE                                    NOMINATED NODE   READINESS GATES
-ros2-listener-1-5c87cc854d-c4q78   1/1     Running   0             15m   10.244.0.4     tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
-ros2-listener-2-7c8f99f79-lg8dp    1/1     Running   1 (15m ago)   15m   10.244.1.5     ubuntu                                  <none>           <none>
-ros2-listener-3-5778bb66c4-j9pp8   1/1     Running   0             15m   10.244.0.5     tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
-ros2-talker-1-54f5fb9dcd-2dlv6     1/1     Running   0             15m   10.244.1.4     ubuntu                                  <none>           <none>
-ros2-talker-2-774d9b5846-bwm2s     1/1     Running   0             15m   10.244.1.3     ubuntu                                  <none>           <none>
-ros2-talker-3-67c88d57d-z52l4      1/1     Running   0             15m   10.244.1.6     ubuntu                                  <none>           <none>
+NAME                               READY   STATUS    RESTARTS   AGE   IP             NODE           NOMINATED NODE   READINESS GATES
+ros2-listener-1-55d8fc9f47-thhzl   1/1     Running   0          3s    10.244.2.31    kind-worker2   <none>           <none>
+ros2-listener-2-7b64bfb8dd-pdwsh   1/1     Running   0          3s    10.244.2.27    kind-worker2   <none>           <none>
+ros2-listener-3-59fc44bfdf-mglbq   1/1     Running   0          3s    10.244.1.64    kind-worker    <none>           <none>
+ros2-talker-1-57cf57d5bf-psb4x     1/1     Running   0          3s    10.244.2.97    kind-worker2   <none>           <none>
+ros2-talker-2-6544ddddf7-4gdhm     1/1     Running   0          3s    10.244.2.164   kind-worker2   <none>           <none>
+ros2-talker-3-5774bb7c9c-2vv4k     1/1     Running   0          3s    10.244.2.11    kind-worker2   <none>           <none>
+
+### talker-3 (kind-worker2) and listener-3 (kind-worker) are discovered via multicast across the cluster nodes
+> kubectl logs deployment/ros2-listener-3 --tail=2
+data: Hello, I am talker-3
+---
 ```
 
 - Jump in one of container to see the activity.
 
 ```bash
-> kubectl exec --stdin --tty ros2-talker-1-54f5fb9dcd-2dlv6 -- /bin/bash
+> kubectl exec --stdin --tty ros2-talker-1-57cf57d5bf-psb4x -- /bin/bash
 
-root@ros2-talker-1-54f5fb9dcd-2dlv6:/# source /opt/ros/rolling/setup.bash
+root@ros2-talker-1-57cf57d5bf-psb4x:/# source /opt/ros/rolling/setup.bash
 
-root@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic list
+root@ros2-talker-1-57cf57d5bf-psb4x:/# ros2 topic list
 /chatter1
 /chatter2
 /chatter3
 /parameter_events
 /rosout
-root@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic list -v
+root@ros2-talker-1-57cf57d5bf-psb4x:/# ros2 topic list -v
 Published topics:
  * /chatter1 [std_msgs/msg/String] 1 publisher
  * /chatter2 [std_msgs/msg/String] 1 publisher
@@ -84,17 +90,17 @@ Subscribed topics:
  * /chatter2 [std_msgs/msg/String] 1 subscriber
  * /chatter3 [std_msgs/msg/String] 1 subscriber
 
-root@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter1 std_msgs/String
+root@ros2-talker-1-57cf57d5bf-psb4x:/# ros2 topic echo /chatter1 std_msgs/String
 data: Hello, I am talker-1
 ---
 data: Hello, I am talker-1
 ---
-^Croot@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter2 std_msgs/String
+^Croot@ros2-talker-1-57cf57d5bf-psb4x:/# ros2 topic echo /chatter2 std_msgs/String
 data: Hello, I am talker-2
 ---
 data: Hello, I am talker-2
 ---
-^Croot@ros2-talker-1-54f5fb9dcd-2dlv6:/# ros2 topic echo /chatter3 std_msgs/String
+^Croot@ros2-talker-1-57cf57d5bf-psb4x:/# ros2 topic echo /chatter3 std_msgs/String
 data: Hello, I am talker-3
 ---
 data: Hello, I am talker-3
@@ -132,25 +138,27 @@ daemonset.apps/ros2-deamonset-1 created
 daemonset.apps/ros2-deamonset-2 created
 
 > kubectl get pods -o wide
-NAME                     READY   STATUS    RESTARTS   AGE    IP            NODE                                    NOMINATED NODE   READINESS GATES
-ros2-deamonset-1-68bt2   2/2     Running   0          5m2s   10.244.1.3    ubuntu                                  <none>           <none>
-ros2-deamonset-1-zp2lq   2/2     Running   0          5m2s   10.244.0.11   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
-ros2-deamonset-2-lgbnp   2/2     Running   0          5m     10.244.1.7    ubuntu                                  <none>           <none>
-ros2-deamonset-2-mf69r   2/2     Running   0          5m2s   10.244.0.12   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+NAME                     READY   STATUS    RESTARTS   AGE   IP             NODE                 NOMINATED NODE   READINESS GATES
+ros2-deamonset-1-hcjf8   2/2     Running   0          3s    10.244.0.237   kind-control-plane   <none>           <none>
+ros2-deamonset-1-sqm6g   2/2     Running   0          3s    10.244.1.73    kind-worker          <none>           <none>
+ros2-deamonset-1-wlfh4   2/2     Running   0          3s    10.244.2.218   kind-worker2         <none>           <none>
+ros2-deamonset-2-m7znk   2/2     Running   0          3s    10.244.1.36    kind-worker          <none>           <none>
+ros2-deamonset-2-mdd88   2/2     Running   0          3s    10.244.2.30    kind-worker2         <none>           <none>
+ros2-deamonset-2-mfqd2   2/2     Running   0          3s    10.244.0.205   kind-control-plane   <none>           <none>
 ```
 
 - Check each pod to see if localhost communication actually takes place.
 
 ```bash
-> kubectl exec --stdin --tty ros2-deamonset-1-68bt2 -- /bin/bash
+> kubectl exec --stdin --tty ros2-deamonset-1-hcjf8 -- /bin/bash
 Defaulted container "ros2-talker-1" out of: ros2-talker-1, ros2-listener-1
-root@ros2-deamonset-1-68bt2:/# echo $ROS_AUTOMATIC_DISCOVERY_RANGE
+root@ros2-deamonset-1-hcjf8:/# echo $ROS_AUTOMATIC_DISCOVERY_RANGE
 LOCALHOST
-root@ros2-deamonset-1-68bt2:/# source /opt/ros/rolling/setup.bash
-root@ros2-deamonset-1-68bt2:/# ros2 node list
+root@ros2-deamonset-1-hcjf8:/# source /opt/ros/rolling/setup.bash
+root@ros2-deamonset-1-hcjf8:/# ros2 node list
 /listener
 /talker
-root@ros2-deamonset-1-68bt2:/# ros2 topic list
+root@ros2-deamonset-1-hcjf8:/# ros2 topic list
 /chatter
 /parameter_events
 /rosout
@@ -164,8 +172,9 @@ root@ros2-deamonset-1-68bt2:/# ros2 topic list
 
 ### ROS 2 Logical Partition / Multiple RMW Implementation
 
-This section it will deploy the ROS 2 application containers with host network interface.
+This section it will deploy the ROS 2 application containers to the specific cluster nodes selected by the node labels.
 And taking advantage of Kubernetes `ConfigMap` (Shared virtual storage) to bind ROS 2 specific environmental variable via initializing container runtime.
+(`hostNetwork: true` is commented out in the deployment description, enable it if the application containers need to be bound to the host network interface.)
 After `ConfigMap` is created, in the yaml description, we can use those `key-value` content as environmental variables for ROS 2 containers, here it uses `ROS_DOMAIN_ID` and `RMW_IMPLEMENTATION` to have logical partition and different RMW implementation support.
 
 The advantage of this example is to isolate configuration data and runtime container completely, so that we can bind any configuration data to any container runtime when starting the deployment.
@@ -180,13 +189,15 @@ In this example, we control fleet deployment based on nodetype labels.
 So we need to add labels for each cluster node as following.
 
 ```bash
-> kubectl label nodes tomoyafujita-hp-compaq-elite-8300-sff nodetype=edgeserver
-> kubectl label nodes ubuntu nodetype=edgedevice
+### physical cluster: kubectl label nodes <control-plane-node> nodetype=edgeserver, kubectl label nodes <worker-node> nodetype=edgedevice
+> kubectl label nodes kind-control-plane nodetype=edgeserver
+> kubectl label nodes kind-worker nodetype=edgedevice
 
 > kubectl get nodes --show-labels
-NAME                                    STATUS   ROLES           AGE   VERSION   LABELS
-tomoyafujita-hp-compaq-elite-8300-sff   Ready    control-plane   12m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=tomoyafujita-hp-compaq-elite-8300-sff,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
-ubuntu                                  Ready    <none>          12m   v1.37.0   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=ubuntu,kubernetes.io/os=linux,nodetype=edgedevice
+NAME                 STATUS   ROLES           AGE   VERSION   LABELS
+kind-control-plane   Ready    control-plane   10m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kind-control-plane,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=,nodetype=edgeserver
+kind-worker          Ready    <none>          10m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kind-worker,kubernetes.io/os=linux,nodetype=edgedevice
+kind-worker2         Ready    <none>          10m   v1.37.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kind-worker2,kubernetes.io/os=linux
 ```
 
 - Create `ConfigMap` in cluster system
@@ -204,7 +215,7 @@ connext-config             2      6s
 cyclonedds-config          2      6s
 fastdds-config-domain-10   2      6s
 fastdds-config-domain-5    2      6s
-kube-root-ca.crt           1      6h6m
+kube-root-ca.crt           1      10m
 ```
 
 - Start application pods
@@ -219,11 +230,11 @@ pod/ros2-fastdds-talker-id10 created
 pod/ros2-fastdds-listener-id10 created
 
 > kubectl get pods -o wide
-NAME                         READY   STATUS    RESTARTS      AGE   IP              NODE                                    NOMINATED NODE   READINESS GATES
-ros2-fastdds-listener-id10   1/1     Running   2 (14s ago)   19s   192.168.1.248   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
-ros2-fastdds-listener-id5    1/1     Running   0             19s   192.168.1.79    ubuntu                                  <none>           <none>
-ros2-fastdds-talker-id10     1/1     Running   0             19s   192.168.1.79    ubuntu                                  <none>           <none>
-ros2-fastdds-talker-id5      1/1     Running   0             19s   192.168.1.248   tomoyafujita-hp-compaq-elite-8300-sff   <none>           <none>
+NAME                         READY   STATUS    RESTARTS      AGE   IP             NODE                 NOMINATED NODE   READINESS GATES
+ros2-fastdds-listener-id10   1/1     Running   1 (17s ago)   18s   10.244.0.199   kind-control-plane   <none>           <none>
+ros2-fastdds-listener-id5    1/1     Running   0             18s   10.244.1.236   kind-worker          <none>           <none>
+ros2-fastdds-talker-id10     1/1     Running   0             18s   10.244.1.66    kind-worker          <none>           <none>
+ros2-fastdds-talker-id5      1/1     Running   0             18s   10.244.0.232   kind-control-plane   <none>           <none>
 ```
 
 Now we can check if those containers running as expected,
@@ -254,10 +265,10 @@ data: Hello, I am in the room 10
 ---
 ```
 
-- Using docker container to see the ROS 2 communication
+- Using docker container to see the ROS 2 communication (Optional)
 
-Since all containers bound to host network interface, we can see the ROS 2 communication via host network interface.
-We can use docker container to peek ROS 2 activity as following.
+If `hostNetwork: true` is enabled in the deployment description, all containers are bound to host network interface, so that we can see the ROS 2 communication via host network interface.
+We can use docker container on the cluster node to peek ROS 2 activity as following.
 
 ```bash
 > docker run -it --privileged --network host --name rolling-docker  tomoyafujita/ros:rolling

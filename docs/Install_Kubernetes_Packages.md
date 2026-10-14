@@ -177,7 +177,7 @@ Kustomize Version: v5.7.1
 > curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-$(dpkg --print-architecture)
 > chmod +x /usr/local/bin/kind
 > kind version
-kind v0.33.0 go1.25.0 linux/amd64
+kind v0.33.0 go1.2x.x linux/amd64
 ```
 
 ## KubeEdge keadm (Optional)

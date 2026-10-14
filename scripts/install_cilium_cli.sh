@@ -29,4 +29,4 @@ tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
 popd > /dev/null
 rm -rf ${TMPDIR}
 echo "Cilium CLI is installed on /usr/local/bin/cilium, for uninstallation you can just delete the executable."
-cilium version --client
+/usr/local/bin/cilium version --client

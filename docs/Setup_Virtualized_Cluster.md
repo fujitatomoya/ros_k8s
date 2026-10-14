@@ -28,7 +28,7 @@ If the installation has been completed, we can see the kind version as following
 # No root permission is required to use KIND, but the user must be in docker group
 > docker version
 > kind version
-kind v0.33.0 go1.25.0 linux/amd64
+kind v0.33.0 go1.2x.x linux/amd64
 ```
 
 kind `v0.33.0` uses `kindest/node:v1.37.0` as the default node image, that is said Kubernetes `v1.37.0` is deployed in the virtual cluster.
@@ -41,7 +41,7 @@ Other Kubernetes versions can be used via `--image` option with the pre-built no
 ```bash
 > kind create cluster
 Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.37.0) 🖼
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
  ✓ Preparing nodes 📦
  ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
@@ -52,7 +52,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-kind
 
-Have a nice day! 👋
+Thanks for using kind! 😊
 
 > kubectl config get-contexts
 CURRENT   NAME        CLUSTER     AUTHINFO    NAMESPACE
@@ -75,8 +75,8 @@ Single node cluster uses `kindnet` as the default CNI plugin, which is enough fo
 
 ```bash
 > kubectl get nodes -o wide
-NAME                 STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION     CONTAINER-RUNTIME
-kind-control-plane   Ready    control-plane   5m1s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
+NAME                 STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   5m1s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
 
 > docker ps
 CONTAINER ID   IMAGE                  COMMAND                  CREATED         STATUS         PORTS                       NAMES
@@ -105,7 +105,7 @@ In this description, the default CNI (`kindnet`) is disabled (`disableDefaultCNI
 ```bash
 > kind create cluster --config=./yaml/kind-multiple-node.yaml
 Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.37.0) 🖼
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
  ✓ Preparing nodes 📦 📦 📦
  ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
@@ -116,20 +116,20 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-kind
 
-Have a nice day! 👋
+Thanks for using kind! 😊
 
 > kubectl cluster-info --context kind-kind
-Kubernetes control plane is running at https://127.0.0.1:46403
-CoreDNS is running at https://127.0.0.1:46403/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Kubernetes control plane is running at https://127.0.0.1:43059
+CoreDNS is running at https://127.0.0.1:43059/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 
 ### Nodes are NotReady until CNI plugin is deployed
 > kubectl get nodes -o wide
-NAME                 STATUS     ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION     CONTAINER-RUNTIME
-kind-control-plane   NotReady   control-plane   76s   v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
-kind-worker          NotReady   <none>          55s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
-kind-worker2         NotReady   <none>          55s   v1.37.0   172.18.0.4    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
+NAME                 STATUS     ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+kind-control-plane   NotReady   control-plane   26s   v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker          NotReady   <none>          12s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker2         NotReady   <none>          12s   v1.37.0   172.18.0.4    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
 ```
 
 - Deploy Cilium CNI plugin
@@ -145,21 +145,52 @@ kind-worker2         NotReady   <none>          55s   v1.37.0   172.18.0.4    <n
 🔮 Auto-detected kube-proxy has been installed
 
 > cilium status --wait
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+DaemonSet              cilium                   Desired: 3, Ready: 3/3, Available: 3/3
+DaemonSet              cilium-envoy             Desired: 3, Ready: 3/3, Available: 3/3
+Deployment             cilium-operator          Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium                   Running: 3
+                       cilium-envoy             Running: 3
+                       cilium-operator          Running: 1
+                       clustermesh-apiserver
+                       hubble-relay
+Cluster Pods:          3/3 managed by Cilium
+Helm chart version:    1.20.2
 ...<snip>
 
 > kubectl get nodes -o wide
-NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION     CONTAINER-RUNTIME
-kind-control-plane   Ready    control-plane   3m    v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
-kind-worker          Ready    <none>          3m    v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
-kind-worker2         Ready    <none>          3m    v1.37.0   172.18.0.4    <none>        Debian GNU/Linux 12 (bookworm)   6.8.0-xx-generic   containerd://2.x.x
+NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   77s   v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker          Ready    <none>          63s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
+kind-worker2         Ready    <none>          63s   v1.37.0   172.18.0.4    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-38-generic (amd64)   containerd://2.3.4
 ```
 
   To use ROS 2 / DDS multicast discovery between the virtual nodes, see [Enable Multicast](./Setup_Kubernetes_Cluster.md#enable-multicast).
 
 ```bash
 > cilium config set multicast-enabled true
+✨ Patching ConfigMap cilium-config with multicast-enabled=true...
+♻️  Restarted Cilium pods
+
 > cilium multicast add --group-ip 239.255.0.1
+Added 2 nodes (kind-control-plane, kind-worker2) to multicast group 239.255.0.1 in kind-worker
+Added 2 nodes (kind-worker, kind-worker2) to multicast group 239.255.0.1 in kind-control-plane
+Added 2 nodes (kind-control-plane, kind-worker) to multicast group 239.255.0.1 in kind-worker2
+
 > cilium multicast list subscriber --all
+Node                 Group         Subscriber    Type
+kind-worker          239.255.0.1   10.244.2.43   Remote Node
+                                   10.244.0.23   Remote Node
+kind-worker2         239.255.0.1   10.244.0.23   Remote Node
+                                   10.244.1.25   Remote Node
+kind-control-plane   239.255.0.1   10.244.1.25   Remote Node
+                                   10.244.2.43   Remote Node
 ```
 
 - Load local container images (Optional)
@@ -168,6 +199,9 @@ kind-worker2         Ready    <none>          3m    v1.37.0   172.18.0.4    <non
 
 ```bash
 > kind load docker-image tomoyafujita/ros:rolling
+Image: "tomoyafujita/ros:rolling" with ID "sha256:31533583b2f5..." not yet present on node "kind-control-plane", loading...
+Image: "tomoyafujita/ros:rolling" with ID "sha256:31533583b2f5..." not yet present on node "kind-worker2", loading...
+Image: "tomoyafujita/ros:rolling" with ID "sha256:31533583b2f5..." not yet present on node "kind-worker", loading...
 ```
 
 - Delete kind cluster

@@ -100,6 +100,24 @@ It uses POSIX shared memory file `/dev/shm` in default including [Shared Memory 
 ```bash
 > kubectl apply -f ./yaml/ros2-data-sharing.yaml
 daemonset.apps/ros2-data-sharing created
+
+> kubectl get pods -o wide
+NAME                      READY   STATUS    RESTARTS   AGE   IP             NODE                 NOMINATED NODE   READINESS GATES
+ros2-data-sharing-2jmlp   3/3     Running   0          13s   10.244.1.76    kind-worker          <none>           <none>
+ros2-data-sharing-2qf69   3/3     Running   0          13s   10.244.2.204   kind-worker2         <none>           <none>
+ros2-data-sharing-w897j   3/3     Running   0          13s   10.244.0.90    kind-control-plane   <none>           <none>
+
+> kubectl logs ros2-data-sharing-2jmlp -c ros2-talker-loaned-msg --tail=2
+[INFO] [1791954870.946773205] [loaned_message_talker]: Publishing: '11.000000'
+[INFO] [1791954870.946828631] [loaned_message_talker]: Publishing: 'Hello World: 11'
+> kubectl logs ros2-data-sharing-2jmlp -c ros2-listener-1 --tail=2
+[INFO] [1791954870.942841622] [listener]: I heard: [Hello World: 11]
+[INFO] [1791954870.947343130] [listener]: I heard: [Hello World: 11]
+
+### Fast-DDS shared memory segments are created on the tmpfs shared in the pod
+> kubectl exec ros2-data-sharing-2jmlp -c ros2-listener-1 -- ls /dev/shm
+fastdds_1db5a9b5dadec5a6
+fastdds_1db5a9b5dadec5a6_el
 ```
 
 - Stop DaemonSet
@@ -130,7 +148,8 @@ This example shows how to start the [Fast-DDS discovery server](https://fast-dds
   These discovery server containers will be deployed to the `control-plane` in this example, but this can be deployed anywhere else.
   It is highly recommended that primary and secondary discovery server should be deployed to different physical host system, so that it can tolerate the situation.
 
-  Discovery server is started by `fastdds discovery -p <port>` ([Fast DDS CLI](https://fast-dds.docs.eprosima.com/en/latest/fastddscli/cli/cli.html#discovery)), `--server-id` option is deprecated in Fast DDS 3.x which is used by ROS 2 Jazzy or later.
+  Discovery server is started by `fastdds discovery -i <server-id> -p <port>` ([Fast DDS CLI](https://fast-dds.docs.eprosima.com/en/latest/fastddscli/cli/cli.html#discovery)), where `-i` is the zero based position of the server in `ROS_DISCOVERY_SERVER` list.
+  `-i` (`--server-id`) is mandatory with Fast DDS 2.x (ROS 2 Jazzy), and it is deprecated but still accepted with Fast DDS 3.x (ROS 2 Kilted or later) to fix the server GUID.
 
 ```bash
 > kubectl apply -f ./yaml/ros2-fastdds-discovery-server.yaml
@@ -145,28 +164,28 @@ service/secondary-discovery-server created
 
 ```bash
 > kubectl get pods -o wide
-NAME                                         READY   STATUS    RESTARTS   AGE   IP           NODE                 NOMINATED NODE   READINESS GATES
-discovery-server-primary-6ccc9cb949-qdcxw    1/1     Running   0          45m   10.244.0.2   kind-control-plane   <none>           <none>
-discovery-server-secondary-9bfc46bb4-t9jms   1/1     Running   0          45m   10.244.0.3   kind-control-plane   <none>           <none>
-ros2-listener-1-847d6c848d-7655m             1/1     Running   0          43m   10.244.1.4   kind-worker          <none>           <none>
-ros2-listener-2-799b457dff-qdgrj             1/1     Running   0          43m   10.244.2.4   kind-worker2         <none>           <none>
-ros2-listener-3-768dff8698-t9sdg             1/1     Running   0          43m   10.244.1.5   kind-worker          <none>           <none>
-ros2-talker-1-7484866974-ddlt7               1/1     Running   0          43m   10.244.2.2   kind-worker2         <none>           <none>
-ros2-talker-2-87b8db554-z7fwz                1/1     Running   0          43m   10.244.2.1   kind-worker2         <none>           <none>
-ros2-talker-3-7bd6fcdd74-jntmx               1/1     Running   0          43m   10.244.2.3   kind-worker2         <none>           <none>
+NAME                                         READY   STATUS    RESTARTS   AGE   IP             NODE                 NOMINATED NODE   READINESS GATES
+discovery-server-primary-9578bfbb9-t2s2r     1/1     Running   0          18s   10.244.0.57    kind-control-plane   <none>           <none>
+discovery-server-secondary-646647d49-8qn8w   1/1     Running   0          18s   10.244.0.210   kind-control-plane   <none>           <none>
+ros2-listener-1-6858b9694c-tfj4r             1/1     Running   0          18s   10.244.2.198   kind-worker2         <none>           <none>
+ros2-listener-2-797cd56f9b-26zd4             1/1     Running   0          18s   10.244.2.118   kind-worker2         <none>           <none>
+ros2-listener-3-86988586b9-hnbwb             1/1     Running   0          18s   10.244.1.243   kind-worker          <none>           <none>
+ros2-talker-1-696dbb575c-zxkk9               1/1     Running   0          18s   10.244.2.253   kind-worker2         <none>           <none>
+ros2-talker-2-679fb7bfbf-4r6ds               1/1     Running   0          18s   10.244.2.153   kind-worker2         <none>           <none>
+ros2-talker-3-7d67cb5f57-xkz4d               1/1     Running   0          18s   10.244.2.72    kind-worker2         <none>           <none>
 
 > kubectl get services
 NAME                         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes                   ClusterIP   10.96.0.1    <none>        443/TCP   50m
-primary-discovery-server     ClusterIP   None         <none>        <none>    45m
-secondary-discovery-server   ClusterIP   None         <none>        <none>    45m
+kubernetes                   ClusterIP   10.96.0.1    <none>        443/TCP   11m
+primary-discovery-server     ClusterIP   None         <none>        <none>    18s
+secondary-discovery-server   ClusterIP   None         <none>        <none>    18s
 
-> kubectl exec --tty --stdin ros2-listener-1-847d6c848d-7655m -- nslookup primary-discovery-server
+> kubectl exec --tty --stdin ros2-listener-1-6858b9694c-tfj4r -- nslookup primary-discovery-server
 Server:		10.96.0.10
 Address:	10.96.0.10#53
 
 Name:	primary-discovery-server.default.svc.cluster.local
-Address: 10.244.0.2
+Address: 10.244.0.57
 ```
 
 - ROS 2 Talker and Listener Application Deployment
@@ -190,15 +209,22 @@ data: Hello, I am talker-1
 ---
 data: Hello, I am talker-1
 ---
+> kubectl logs deployment/ros2-listener-2 | head -2
+data: Hello, I am talker-2
+---
+> kubectl logs deployment/ros2-listener-3 | head -2
+data: Hello, I am talker-3
+---
 ```
 
   Be advised that the discovery server clients only know the topics that they are subscribed or published, so that `ros2 topic list` in the application container does not show all topics in the system.
   Use `ROS_SUPER_CLIENT=true` environmental variable for the introspection tools such as `ros2cli` to discover everything.
+  (With Fast DDS 2.x / ROS 2 Jazzy, `ros2 topic list` only shows `/parameter_events` and `/rosout` without `ROS_SUPER_CLIENT=true`. With Fast DDS 3.x / ROS 2 Rolling, all topics are listed even without it.)
 
 ```bash
 > kubectl exec --stdin --tty deployment/ros2-listener-1 -- /bin/bash
-root@ros2-listener-1-847d6c848d-7655m:/# source /opt/ros/rolling/setup.bash
-root@ros2-listener-1-847d6c848d-7655m:/# ROS_SUPER_CLIENT=true ros2 topic list
+root@ros2-listener-1-6858b9694c-tfj4r:/# source /opt/ros/$ROS_DISTRO/setup.bash
+root@ros2-listener-1-6858b9694c-tfj4r:/# ROS_SUPER_CLIENT=true ros2 topic list --no-daemon --spin-time 5
 /chatter1
 /chatter2
 /chatter3
@@ -393,22 +419,28 @@ deployment.apps/ros2-secured-listener created
 ```bash
 kubectl get pods
 NAME                                     READY   STATUS    RESTARTS   AGE
-ros2-secured-listener-78784df45f-jpdvt   1/1     Running   0          85s
-ros2-secured-talker-6b694cbf6f-5p8t2     1/1     Running   0          85s
+ros2-secured-listener-68dcbd9b88-4n4k6   1/1     Running   0          15s
+ros2-secured-talker-57f4c5765d-z6z25     1/1     Running   0          15s
 
-kubectl logs ros2-secured-listener-78784df45f-jpdvt
-[INFO] [1714115341.611394483] [rcl]: Found security directory: /etc/demo_keystore/enclaves/talker_listener/listener
-[INFO] [1714115342.633319407] [listener]: I heard: [Hello World: 1]
+kubectl logs ros2-secured-listener-68dcbd9b88-4n4k6
+[INFO] [1791954938.279784041] [rcl]: Found security directory: /etc/demo_keystore/enclaves/talker_listener/listener
+[INFO] [1791954939.290620233] [listener]: I heard: [Hello World: 1]
+[INFO] [1791954940.290362749] [listener]: I heard: [Hello World: 2]
 ...<snip>
 ```
 
   Besides that, we can jump in the container and use `ros2cli` to see the ROS 2 system.
-  Since `ros2cli` is not bound to security enclaves, it cannot discover any nodes or topics as following.
+  Since `ros2cli` is not bound to security enclaves, it cannot even create the node with `ROS_SECURITY_STRATEGY=Enforce` bound to the container.
+  Disabling the security for `ros2cli` (`ROS_SECURITY_ENABLE=false`) makes it start as non-secured participant, but it cannot discover any secured nodes or topics as following.
   This also indicates that security authentication and access permission works just as expected.
 
 ```bash
-root@ros2-secured-listener-78784df45f-jpdvt:/# ros2 node list
-root@ros2-secured-listener-78784df45f-jpdvt:/# ros2 topic list
+root@ros2-secured-listener-68dcbd9b88-4n4k6:/# source /opt/ros/rolling/setup.bash
+root@ros2-secured-listener-68dcbd9b88-4n4k6:/# ros2 node list
+[INFO] [1791954952.881900221] [rcl]: Found security directory: /etc/demo_keystore/enclaves
+error creating node: couldn't find all security files!, at ./src/participant.cpp:402
+root@ros2-secured-listener-68dcbd9b88-4n4k6:/# ROS_SECURITY_ENABLE=false ros2 node list
+root@ros2-secured-listener-68dcbd9b88-4n4k6:/# ROS_SECURITY_ENABLE=false ros2 topic list
 /parameter_events
 /rosout
 ```
