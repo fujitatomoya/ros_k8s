@@ -1,0 +1,46 @@
+# OpenKruise CloneSet with in-place update for ROS 2 application containers.
+# see https://openkruise.io/docs/user-manuals/cloneset
+#
+# Usage:
+#   kubectl apply -f ./yaml/ros2-kruise-cloneset.yaml
+#   kubectl patch cloneset ros2-talker --type merge -p '{"spec":{"template":{"spec":{"containers":[{"name":"ros2-talker","image":"tomoyafujita/ros:rolling"}]}}}}'
+apiVersion: apps.kruise.io/v1alpha1
+kind: CloneSet
+metadata:
+  name: ros2-talker
+  labels:
+    app: ros2-talker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ros2-talker
+  template:
+    metadata:
+      labels:
+        app: ros2-talker
+    spec:
+      containers:
+      - name: ros2-talker
+        image: tomoyafujita/ros:jazzy
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # ROS_DISTRO is provided by the container image, so the same command works for jazzy and rolling images.
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp talker"]
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+  updateStrategy:
+    # InPlaceIfPossible: update the container in place (image, metadata) if possible, otherwise recreate the pod.
+    # InPlaceOnly: only in-place updatable fields can be changed. ReCreate (default): the same with Deployment.
+    type: InPlaceIfPossible
+    # Number (or percentage) of pods that stay on the old revision, use it for canary / staged rollout.
+    partition: 0
+    # Maximum number (or percentage) of pods unavailable during the update.
+    maxUnavailable: 1
+    inPlaceUpdateStrategy:
+      # Delay between the pod is marked as updating (not ready) and the container is actually restarted,
+      # so that the other ROS 2 nodes can notice the unavailability before the restart.
+      gracePeriodSeconds: 5

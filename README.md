@@ -93,6 +93,10 @@ This environment is very much useful to try or test your container images or ser
 - [Robotics System General](./docs/Robotics_System_General.md)
   - [Reserve Resources for Host System](./docs/Robotics_System_General.md#reserve-resources-for-host-system)
   - [Assign Resources to Pods/Containers](./docs/Robotics_System_General.md#assign-resources-to-podscontainers)
+- [ROS 2 Deployment with OpenKruise](./docs/ROS2_Deployment_OpenKruise.md)
+  - [Why OpenKruise for Robotics and Edge](./docs/ROS2_Deployment_OpenKruise.md#why-openkruise-for-robotics-and-edge)
+  - [CloneSet In-Place Update](./docs/ROS2_Deployment_OpenKruise.md#cloneset-in-place-update)
+  - [Advanced DaemonSet Rollout by Node Selector](./docs/ROS2_Deployment_OpenKruise.md#advanced-daemonset-rollout-by-node-selector)
 - [Trouble Shooting](./docs/Trouble_Shooting.md)
 
 ## Slides / Talks
