@@ -1,0 +1,95 @@
+# micro-ROS Agent on the edge node (host network) and ROS 2 listener on the cloud node (host network).
+# Replace the kubernetes.io/hostname values with your edge node (agent) and cloud node (listener) names,
+# see `kubectl get nodes`.
+#
+# micro-ROS client devices (MCU running micro-ROS, e.g. ESP32 / STM32 / Raspberry Pi Pico) connect to
+# the edge node IP address with UDP port 8888, and the agent bridges them into the ROS 2 / DDS network.
+# see https://micro.ros.org/docs/concepts/client_library/introduction/
+#   https://github.com/micro-ROS/micro-ROS-Agent
+
+######################
+### micro-ROS Agent ##
+######################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micro-ros-agent
+  labels:
+    app: micro-ros-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: micro-ros-agent
+  template:
+    metadata:
+      labels:
+        app: micro-ros-agent
+    spec:
+      containers:
+      - name: micro-ros-agent
+        # ROS 2 distribution of the agent must be aligned with the ROS 2 application containers (jazzy).
+        image: microros/micro-ros-agent:jazzy
+        imagePullPolicy: IfNotPresent
+        tty: true
+        # UDP transport on port 8888, -v4 for the verbose log to see the client session and the created entities.
+        args: ["udp4", "--port", "8888", "-v4"]
+        ports:
+        - containerPort: 8888
+          protocol: UDP
+          name: xrce-dds
+        env:
+        # DDS participants of the agent are bound to the host network, ROS_DOMAIN_ID must be aligned with the ROS 2 application containers.
+        - name: ROS_DOMAIN_ID
+          value: "0"
+      # Edge node does not have CNI plugin (KubeEdge), bind the host network interface so that
+      # micro-ROS client devices in the same network can connect to the agent.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: ubuntu         # edge node name
+      restartPolicy: Always
+
+---
+
+######################
+### ROS 2 listener  ##
+######################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-microros-listener
+  labels:
+    app: ros2-microros-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-microros-listener
+  template:
+    metadata:
+      labels:
+        app: ros2-microros-listener
+    spec:
+      containers:
+      - name: ros2-microros-listener
+        image: tomoyafujita/ros:jazzy
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # micro-ROS int32_publisher demo publishes std_msgs/msg/Int32 on /std_msgs_msg_Int32
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /std_msgs_msg_Int32 std_msgs/msg/Int32"]
+        env:
+        - name: ROS_DOMAIN_ID
+          value: "0"
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: tomoyafujita   # cloud (control-plane) node name
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always

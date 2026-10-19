@@ -204,6 +204,146 @@ ros2-talker-1-xxxxxxxxxx-xxxxx     1/1     Running   0          1m    192.168.1.
 > `kubectl logs` and `kubectl exec` to the pods on the edge node require the `cloudStream` / `edgeStream` tunnel to be enabled.
 > see [Enable Kubectl logs/exec/attach/port-forward](https://kubeedge.io/docs/advanced/debug/) for more details.
 
+## micro-ROS Far Edge Devices
+
+[micro-ROS](https://micro.ros.org/) brings ROS 2 to the microcontrollers (MCU) such as ESP32, STM32 and Raspberry Pi Pico, those are the **far edge** devices that cannot run the container runtime nor Kubernetes components.
+micro-ROS client on the MCU communicates with the [micro-ROS Agent](https://github.com/micro-ROS/micro-ROS-Agent) via [DDS-XRCE](https://www.omg.org/spec/DDS-XRCE/) over UDP, TCP or serial transport, and the agent acts as the DDS participant on behalf of the MCU to bridge the micro-ROS nodes into the ROS 2 / DDS network.
+
+With KubeEdge, the micro-ROS Agent can be deployed as a pod to the **edge node** (e.g. Raspberry Pi running `edgecore`) in the same local network with the far edge devices, and the ROS 2 application containers on the cloud node (or the other edge nodes) communicate with the micro-ROS nodes transparently via DDS.
+Kubernetes manages the agent as the application container, so that the agent version, configuration (transport, port) and the placement (which edge node) are described in the deployment description.
+
+```
++------------------+  UDP 8888 (DDS-XRCE)  +------------------------------+   DDS (host network)   +----------------------------+
+| micro-ROS client | --------------------> | micro-ROS Agent pod          | <--------------------> | ROS 2 application pod      |
+| (MCU, far edge)  |                       | (edge node, hostNetwork)     |                        | (cloud node, hostNetwork)  |
++------------------+                       +------------------------------+                        +----------------------------+
+```
+
+The agent pod is bound to the host network of the edge node since the edge node does not have CNI plugin (see [Container Network Interface](#container-network-interface-cni)), so that the far edge devices can connect to the edge node IP address with the agent port directly.
+The DDS participant of the agent is also on the host network, so that the ROS 2 application containers also use the host network (the same with [KubeEdge Test Deployment](#kubeedge-test-deployment)), or unicast discovery such as [ROS 2 Fast-DDS Discovery Server](./ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) and `ROS_STATIC_PEERS` to reach the agent from the pod network.
+
+**see deployment description [micro-ROS Agent and ROS 2 listener](./../yaml/ros2-microros-agent.yaml)**
+
+- Deploy micro-ROS Agent to the edge node
+
+  [microros/micro-ros-agent](https://hub.docker.com/r/microros/micro-ros-agent) container image is provided for each ROS 2 distribution, the distribution of the agent must be aligned with the ROS 2 application containers (`jazzy` in this example).
+  Node names in [ros2-microros-agent.yaml](./../yaml/ros2-microros-agent.yaml) need to be adjusted to your environment, the agent is deployed to the edge node and the listener is deployed to the cloud node.
+
+```yaml
+      containers:
+      - name: micro-ros-agent
+        image: microros/micro-ros-agent:jazzy
+        # UDP transport on port 8888, -v4 for the verbose log
+        args: ["udp4", "--port", "8888", "-v4"]
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/hostname: ubuntu         # edge node name
+```
+
+```bash
+> kubectl apply -f ./yaml/ros2-microros-agent.yaml
+deployment.apps/micro-ros-agent created
+deployment.apps/ros2-microros-listener created
+
+> kubectl get pods -o wide
+NAME                                      READY   STATUS    RESTARTS   AGE   IP           NODE                 NOMINATED NODE   READINESS GATES
+micro-ros-agent-849b776769-r6wpb          1/1     Running   0          8s    172.18.0.4   kind-worker          <none>           <none>
+ros2-microros-listener-647644db89-gw2x8   1/1     Running   0          8s    172.18.0.3   kind-control-plane   <none>           <none>
+
+> kubectl logs deployment/micro-ros-agent
+[1792432204.924342] info     | UDPv4AgentLinux.cpp | init                     | running...             | port: 8888
+[1792432204.924504] info     | Root.cpp           | set_verbose_level        | logger setup           | verbose_level: 4
+```
+
+- Connect micro-ROS client to the agent
+
+  Configure the micro-ROS firmware with the edge node IP address and the agent port, e.g. `ros2 run micro_ros_setup configure_firmware.sh <app> --transport udp --ip <edge-node-ip> --port 8888` for [micro_ros_setup](https://github.com/micro-ROS/micro_ros_setup) based firmware, or [`rmw_uros_options_set_udp_address()`](https://micro.ros.org/docs/tutorials/programming_rcl_rclc/micro-ROS/) in the application code.
+  See [micro-ROS tutorials](https://micro.ros.org/docs/tutorials/core/overview/) for the supported hardware and the firmware build.
+
+  If you do not have the MCU at hand, [micro-ROS on Linux (host build)](https://micro.ros.org/docs/tutorials/core/first_application_linux/) can be used as the far edge device simulation.
+  The host build connects to `127.0.0.1:8888` in default (`RMW_UXRCE_DEFAULT_UDP_IP`), so the following forwards the UDP port to the edge node with `socat` for the quick test.
+
+```bash
+### On the host system (Linux, ROS 2 Jazzy installed), see https://micro.ros.org/docs/tutorials/core/first_application_linux/
+> source /opt/ros/jazzy/setup.bash
+> mkdir -p uros_ws/src && cd uros_ws
+> git clone -b jazzy https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
+> rosdep update && rosdep install --from-paths src --ignore-src -y
+> colcon build && source install/local_setup.bash
+> ros2 run micro_ros_setup create_firmware_ws.sh host
+> ros2 run micro_ros_setup build_firmware.sh
+> source install/local_setup.bash
+
+### Forward 127.0.0.1:8888 to the edge node where the agent is running (172.18.0.4 is kind-worker in this example)
+> socat UDP4-LISTEN:8888,fork,reuseaddr UDP4:172.18.0.4:8888 &
+
+### Start micro-ROS int32 publisher demo, that publishes std_msgs/msg/Int32 on /std_msgs_msg_Int32
+> ros2 run micro_ros_demos_rclc int32_publisher
+[INFO] [1792432286.380982554] []: Created a timer with period 1000 ms.
+```
+
+- Check ROS 2 application on the cloud node
+
+  The listener on the cloud node receives the messages from the micro-ROS client via the agent on the edge node, and `ros2cli` can see the micro-ROS node (`/int32_publisher_rclc`) as the ROS 2 node.
+
+```bash
+> kubectl logs deployment/ros2-microros-listener --tail=4
+data: 19
+---
+data: 20
+---
+
+> kubectl exec deployment/ros2-microros-listener -- bash -c 'source /opt/ros/jazzy/setup.bash; ros2 node list --no-daemon --spin-time 4; ros2 topic info -v --no-daemon --spin-time 4 /std_msgs_msg_Int32'
+/int32_publisher_rclc
+Type: std_msgs/msg/Int32
+
+Publisher count: 1
+
+Node name: int32_publisher_rclc
+Node namespace: /
+Topic type: std_msgs/msg/Int32
+Topic type hash: RIHS01_b6578ded3c58c626cfe8d1a6fb6e04f706f97e9f03d2727c9ff4e74b1cef0deb
+Endpoint type: PUBLISHER
+GID: 01.0f.16.2b.ea.a3.49.b5.00.00.00.00.00.00.03.03
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+...<snip>
+```
+
+- Serial transport (USB connected MCU)
+
+  If the MCU is connected to the edge node via USB serial, use the `serial` transport with the device file bound to the agent container.
+  The container requires the privileged mode (or the device plugin) to access the device file on the edge node.
+
+```yaml
+      containers:
+      - name: micro-ros-agent
+        image: microros/micro-ros-agent:jazzy
+        args: ["serial", "--dev", "/dev/ttyUSB0", "-v4"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /dev/ttyUSB0
+          name: serial-device
+      volumes:
+      - name: serial-device
+        hostPath:
+          path: /dev/ttyUSB0
+          type: CharDevice
+```
+
+- Stop deployment
+
+```bash
+> kubectl delete -f ./yaml/ros2-microros-agent.yaml
+```
+
+> [!NOTE]
+> The above procedure is verified on the kind cluster (`kind-worker` as the edge node, `kind-control-plane` as the cloud node, both with `hostNetwork: true`) with the micro-ROS host build as the far edge device.
+> With KubeEdge, the edge node is the physical host running `edgecore`, and the far edge devices are the MCUs connected to the edge node network.
+
 ## Break Down KubeEdge
 
 ```bash
