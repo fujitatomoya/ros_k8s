@@ -56,6 +56,25 @@ This environment is very much useful to try or test your container images or ser
 | Cilium | v1.20.x |
 | containerd | 2.x (Docker apt repository) |
 
+## Verified Deployment Samples
+
+All deployment samples in this repository are re-verified with Cilium multicast enabled (see [Enable Multicast](./docs/Setup_Kubernetes_Cluster.md#enable-multicast)) on the kind cluster with the versions above, since [WeaveNet](https://github.com/weaveworks/weave) that used to be the CNI plugin for the multicast support has reached end of life.
+
+| Sample | Manifest | Multicast | Verified | Note |
+| --- | --- | --- | --- | --- |
+| [ROS DaemonSet Deployment](./docs/ROS_Deployment_Demonstration.md#ros-daemonset-deployment-with-cni) | [ros1-daemonset.yaml](./yaml/ros1-daemonset.yaml) | not required | :heavy_check_mark: | |
+| [ROS Multi-Node Deployment](./docs/ROS_Deployment_Demonstration.md#ros-multi-node-deployment-with-cni) | [ros1-multinode.yaml](./yaml/ros1-multinode.yaml) | not required | :heavy_check_mark: | headless service DNS for `rosmaster` |
+| [ROS Multi-Node Deployment with Host Network](./docs/ROS_Deployment_Demonstration.md#ros-multi-node-deployment-with-host-network) | [ros1-multinode-hostnic.yaml](./yaml/ros1-multinode-hostnic.yaml) | not required | :heavy_check_mark: | `ROS_MASTER_URI` must be the node name |
+| [ROS 2 Simple Distributed System](./docs/ROS2_Deployment_Demonstration.md#ros-2-simple-distributed-system) | [ros2-sample.yaml](./yaml/ros2-sample.yaml) | **required** | :heavy_check_mark: | discovery across the nodes via `239.255.0.1` |
+| [ROS 2 Localhost Only](./docs/ROS2_Deployment_Demonstration.md#ros-2-localhost-only) | [ros2-localhost.yaml](./yaml/ros2-localhost.yaml) | not required | :heavy_check_mark: | `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` |
+| [ROS 2 Logical Partition / Multiple RMW](./docs/ROS2_Deployment_Demonstration.md#ros-2-logical-partition--multiple-rmw-implementation) | [ros2-config.yaml](./yaml/ros2-config.yaml), [ros2-domain-configmap.yaml](./yaml/ros2-domain-configmap.yaml) | **required** | :heavy_check_mark: | `ROS_DOMAIN_ID` 5 and 10 share the group `239.255.0.1` |
+| [ROS 2 Host Network (KubeEdge)](./docs/Setup_KubeEdge.md#kubeedge-test-deployment) | [ros2-sample-hostnic.yaml](./yaml/ros2-sample-hostnic.yaml) | not required | :heavy_check_mark: | node names must be replaced |
+| [ROS 2 GUI Display Access](./docs/ROS2_Deployment_Intermediate.md#ros-2-gui-display-access) | [ros2-turtlesim.yaml](./yaml/ros2-turtlesim.yaml) | **required** | physical node only | requires X server on the node, kind nodes do not have display |
+| [ROS 2 Zero Copy Data Sharing](./docs/ROS2_Deployment_Intermediate.md#ros-2-zero-copy-data-sharing) | [ros2-data-sharing.yaml](./yaml/ros2-data-sharing.yaml) | not required | :heavy_check_mark: | shared memory in the pod |
+| [ROS 2 Fast-DDS Discovery Server](./docs/ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) | [ros2-fastdds-discovery-server.yaml](./yaml/ros2-fastdds-discovery-server.yaml), [ros2-fastdds-discovery-server-apps.yaml](./yaml/ros2-fastdds-discovery-server-apps.yaml) | not required | :heavy_check_mark: | headless service DNS for the discovery servers |
+| [ROS 2 Security Enclaves with ConfigMap](./docs/ROS2_Deployment_Intermediate.md#ros-2-security-enclaves-with-configmap) | [ros2-security-config.yaml](./yaml/ros2-security-config.yaml), [ros2-security-sample.yaml](./yaml/ros2-security-sample.yaml) | **required** | :heavy_check_mark: | |
+| Debug DaemonSet | [ubuntu24-daemonset.yaml](./yaml/ubuntu24-daemonset.yaml) | not required | :heavy_check_mark: | |
+
 ## Tutorials
 
 - [Install Kubernetes Packages](./docs/Install_Kubernetes_Packages.md)
