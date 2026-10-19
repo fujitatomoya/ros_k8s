@@ -1,0 +1,48 @@
+# OpenKruise Advanced DaemonSet with in-place update and node selector based rollout for ROS 2 application containers.
+# see https://openkruise.io/docs/user-manuals/advanceddaemonset
+#
+# Usage:
+#   kubectl apply -f ./yaml/ros2-kruise-daemonset.yaml
+#   kubectl label nodes <node-name> ros2-rollout=canary
+#   kubectl patch daemonset.apps.kruise.io ros2-listener --type merge -p '{"spec":{"template":{"spec":{"containers":[{"name":"ros2-listener","image":"tomoyafujita/ros:rolling"}]}}}}'
+apiVersion: apps.kruise.io/v1beta1
+kind: DaemonSet
+metadata:
+  name: ros2-listener
+  labels:
+    app: ros2-listener
+spec:
+  selector:
+    matchLabels:
+      app: ros2-listener
+  template:
+    metadata:
+      labels:
+        app: ros2-listener
+    spec:
+      containers:
+      - name: ros2-listener
+        image: tomoyafujita/ros:jazzy
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp listener"]
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # InPlaceIfPossible: update the container in place on the node, Standard: recreate the pod (the same with DaemonSet).
+      rollingUpdateType: InPlaceIfPossible
+      maxUnavailable: 1
+      # Only the pods on the nodes that match the selector are updated, the others stay on the old revision.
+      # This is useful to roll out the new version to the specific robots / edge nodes first.
+      selector:
+        matchLabels:
+          ros2-rollout: canary
+      # Number (or percentage) of pods that stay on the old revision.
+      partition: 0
+      # Pause the rolling update, pods are still created on the new nodes.
+      paused: false
