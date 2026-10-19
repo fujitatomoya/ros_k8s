@@ -8,6 +8,7 @@ The reason to build full docker images for ROS and ROS 2 is basic container imag
 | `ros:noetic` | [ros:noetic](https://hub.docker.com/_/ros) | 20.04 | ROS 1, **EOL May 2025** |
 | `ros:jazzy` | [ros:jazzy](https://hub.docker.com/_/ros) | 24.04 | ROS 2 LTS, EOL May 2029 |
 | `ros:rolling` | [ros:rolling](https://hub.docker.com/_/ros) | 26.04 | ROS 2 development distribution |
+| `ros:jazzy-gazebo` | [ros:jazzy](https://hub.docker.com/_/ros) | 24.04 | ROS 2 Jazzy with Gazebo Harmonic (`ros-jazzy-ros-gz`) for [Gazebo Simulation](./ROS2_Gazebo_Simulation.md) |
 
 To build and upload all ROS container images, you can use [build_docker_images.sh](../scripts/build_docker_images.sh).
 
@@ -126,6 +127,26 @@ The procedure is the same with ROS Rolling below, just replace `rolling` with `j
 > docker push $DOCKERHUB_USERNAME/ros:jazzy-$ARCH
 > docker manifest create $DOCKERHUB_USERNAME/ros:jazzy $DOCKERHUB_USERNAME/ros:jazzy-amd64 --amend $DOCKERHUB_USERNAME/ros:jazzy-arm64
 > docker manifest push $DOCKERHUB_USERNAME/ros:jazzy
+```
+
+## ROS Jazzy with Gazebo
+
+[Dockerfile.jazzy-gazebo](./../docker/Dockerfile.jazzy-gazebo) adds [Gazebo Harmonic](https://gazebosim.org/docs/harmonic/) simulator and [ros_gz](https://github.com/gazebosim/ros_gz) integration (`ros-jazzy-ros-gz`) to the ROS Jazzy full image, that is used by [ROS 2 Gazebo Simulation](./ROS2_Gazebo_Simulation.md).
+The image is around 7GB since it includes the simulator, GUI and rendering libraries.
+
+```bash
+> docker build --rm -f ./docker/Dockerfile.jazzy-gazebo -t $DOCKERHUB_USERNAME/ros:jazzy-gazebo-$ARCH .
+> docker push $DOCKERHUB_USERNAME/ros:jazzy-gazebo-$ARCH
+> docker manifest create $DOCKERHUB_USERNAME/ros:jazzy-gazebo $DOCKERHUB_USERNAME/ros:jazzy-gazebo-amd64 --amend $DOCKERHUB_USERNAME/ros:jazzy-gazebo-arm64
+> docker manifest push $DOCKERHUB_USERNAME/ros:jazzy-gazebo
+
+### Check Gazebo and ros_gz in the image
+> docker run -it --rm $DOCKERHUB_USERNAME/ros:jazzy-gazebo bash -c 'source /opt/ros/jazzy/setup.bash && gz sim --version && ros2 pkg list | grep ros_gz'
+Gazebo Sim, version 8.15.0
+...<snip>
+ros_gz_bridge
+ros_gz_sim
+...<snip>
 ```
 
 ## ROS Rolling
