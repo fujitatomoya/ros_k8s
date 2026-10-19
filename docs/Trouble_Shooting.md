@@ -191,6 +191,18 @@ multicast-enabled                                 true
 
 If multicast is not available in your environment, use [ROS 2 Fast-DDS Discovery Server](./ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) or `ROS_STATIC_PEERS` to use unicast discovery.
 
+### ROS 2 nodes with `ROS_DOMAIN_ID` cannot discover each other
+
+DDS well-known multicast group address `239.255.0.1` is shared by all domain IDs, the domain ID only changes the UDP port number (`7400 + 250 * ROS_DOMAIN_ID` for the discovery).
+Cilium multicast forwards the packets based on the group address regardless of the port, so that no additional multicast group is required for `ROS_DOMAIN_ID`.
+Check that the application actually sends the discovery packets to `239.255.0.1` with [Hubble](./Setup_Kubernetes_Cluster.md#enable-hubble-observability) in the `cilium-agent` container on the node, and add the multicast group if the application uses the other address (e.g. user-defined multicast locator in the DDS XML profile).
+see [Multicast Group Address, UDP Port and `ROS_DOMAIN_ID`](./Setup_Kubernetes_Cluster.md#enable-multicast) for more details.
+
+```bash
+> CILIUM_POD=$(kubectl -n kube-system get pods -l k8s-app=cilium --field-selector spec.nodeName=<node-name> -o name)
+> kubectl -n kube-system exec $CILIUM_POD -c cilium-agent -- hubble observe --protocol UDP --to-ip 239.255.0.1 --last 20
+```
+
 ## KIND
 
 ### CNI plugins for KIND
