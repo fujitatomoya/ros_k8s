@@ -1,0 +1,37 @@
+# Build:
+#  docker build --rm -f Dockerfile.jazzy-gazebo -t <user_name>/ros:jazzy-gazebo .
+#
+# Usage:
+#  docker pull <user_name>/ros:jazzy-gazebo
+
+FROM ros:jazzy
+
+ENV ROS_DISTRO=jazzy
+
+LABEL maintainer="Tomoya Fujita <tomoya.fujita825@gmail.com>"
+LABEL version="1.0"
+LABEL description="ROS jazzy docker full image build with Gazebo Harmonic (ros_gz)"
+
+SHELL ["/bin/bash","-c"]
+
+# All apt-get commands start with an update, then install
+# and finally, a cache cleanup to keep the image size small.
+
+# Install packages
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y \
+    # Basic utilities just in case
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    # ROS 2 Security
+    libssl-dev \
+    # install full packages including GUI
+    ros-${ROS_DISTRO}-desktop \
+    # install cyclonedds
+    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    # Gazebo Harmonic simulator and ROS 2 integration (ros_gz)
+    ros-${ROS_DISTRO}-ros-gz \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
