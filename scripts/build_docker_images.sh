@@ -19,6 +19,7 @@ ros_distros=(
     "noetic"
     "jazzy"
     "rolling"
+    "jazzy-gazebo"
 )
 
 build_manifest=false
