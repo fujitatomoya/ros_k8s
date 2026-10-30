@@ -176,6 +176,169 @@ Disable swap on the node and also in `/etc/fstab` so that it stays disabled afte
 > sed -i '/\sswap\s/s/^\(.*\)$/#\1/g' /etc/fstab
 ```
 
+## Container Runtime
+
+### Inspect containers on the node with `crictl`
+
+Usually application containers can be inspected with `kubectl logs` and `kubectl exec` via Kubernetes API server.
+But sometimes these commands cannot be used, because the containers are not instantiated successfully or the API server is not reachable from the node.
+This is likely to happen when deploying system containers such as CNI plugin, CDI (Container Device Interface) and Device Plugin, those are the infrastructure for the application pods.
+Besides that, Kubernetes removed `dockershim` since v1.24, so that `docker ps` does not show the containers managed by `kubelet` via containerd any more.
+
+In those cases, we can inspect the pods and containers on the node directly via [CRI (Container Runtime Interface)](https://kubernetes.io/docs/concepts/architecture/cri/) with [`crictl`](https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/) command.
+`crictl` is provided by [cri-tools](https://github.com/kubernetes-sigs/cri-tools), which is installed as the dependency of `kubeadm` package by [Install Kubernetes Packages](./Install_Kubernetes_Packages.md).
+
+```bash
+### crictl is installed with kubeadm (cri-tools dependency)
+> apt-cache depends kubeadm | grep cri-tools
+  Depends: cri-tools
+> crictl --version
+crictl version v1.37.x
+```
+
+> [!NOTE]
+> kind node images also have `crictl` and `ctr` installed, `docker exec -it kind-worker bash` to log in the kind node and issue the following commands.
+
+- Configure CRI endpoint
+
+  `crictl` requires the CRI runtime endpoint, otherwise it tries the deprecated default endpoints with warning messages as following.
+  (`crictl` needs root permission to access the containerd socket.)
+
+```bash
+> crictl pods
+WARN[0000] runtime connect using default endpoints: [unix:///var/run/dockershim.sock unix:///run/containerd/containerd.sock unix:///run/crio/crio.sock unix:///var/run/cri-dockerd.sock]. As the default settings are now deprecated, you should set the endpoint instead.
+```
+
+  Create `/etc/crictl.yaml` to connect the containerd CRI socket, this is the same socket specified with `--cri-socket` for `kubeadm init` / `kubeadm join`.
+
+```bash
+> cat <<EOF > /etc/crictl.yaml
+runtime-endpoint: unix:///run/containerd/containerd.sock
+image-endpoint: unix:///run/containerd/containerd.sock
+timeout: 10
+debug: false
+EOF
+
+### or use crictl config command
+> crictl config --set runtime-endpoint=unix:///run/containerd/containerd.sock --set image-endpoint=unix:///run/containerd/containerd.sock
+
+### check the connection to the runtime
+> crictl version
+Version:  0.1.0
+RuntimeName:  containerd
+RuntimeVersion:  v2.3.4
+RuntimeApiVersion:  v1
+```
+
+- List pods and containers on the node
+
+  `crictl` shows the pod sandboxes and the containers running on **this node only**, including the containers that `kubectl` cannot show such as `Exited` init containers.
+  The following example is from the kind worker node with Cilium deployed.
+
+```bash
+### Pod sandboxes on the node
+> crictl pods
+POD ID              CREATED             STATE               NAME                                      NAMESPACE            ATTEMPT             RUNTIME
+c6f4c4770432a       2 minutes ago       Ready               coredns-559f6c778d-w69hh                  kube-system          0                   (default)
+89d279f9fb135       2 minutes ago       Ready               cilium-bgvwb                              kube-system          0                   (default)
+5c78aaacab860       2 minutes ago       Ready               cilium-operator-649867d84-skwmf           kube-system          0                   (default)
+203a08f9b8c3e       2 minutes ago       Ready               cilium-envoy-8ndxq                        kube-system          0                   (default)
+0e38dd7e44529       2 minutes ago       Ready               kube-proxy-mj7hq                          kube-system          0                   (default)
+...<snip>
+
+### All containers including exited ones (init containers)
+> crictl ps -a
+CONTAINER           IMAGE               CREATED             STATE               NAME                      ATTEMPT             POD ID              POD                                       NAMESPACE
+9b55856fcfa4c       520212b8b0fcd       2 minutes ago       Running             coredns                   0                   c6f4c4770432a       coredns-559f6c778d-w69hh                  kube-system
+e43ad675be1f5       e8a7b89d30c07       2 minutes ago       Running             cilium-agent              0                   89d279f9fb135       cilium-bgvwb                              kube-system
+07d8b18464731       18f3aea3c0c65       2 minutes ago       Running             cilium-envoy              0                   203a08f9b8c3e       cilium-envoy-8ndxq                        kube-system
+c761a9b631817       e8a7b89d30c07       2 minutes ago       Exited              install-cni-binaries      0                   89d279f9fb135       cilium-bgvwb                              kube-system
+7a9df2f19fcec       e8a7b89d30c07       2 minutes ago       Exited              clean-cilium-state        0                   89d279f9fb135       cilium-bgvwb                              kube-system
+a34792f616f23       e8a7b89d30c07       2 minutes ago       Exited              mount-bpf-fs              0                   89d279f9fb135       cilium-bgvwb                              kube-system
+...<snip>
+
+### Filter by pod name or container name
+> crictl ps -a --name cilium-agent
+> crictl pods --name cilium
+```
+
+- Logs, exec and inspect
+
+```bash
+### Container logs (works even if API server is not reachable), -f to follow
+> crictl logs e43ad675be1f5 | tail -3
+### Logs of the exited init container to see why it failed
+> crictl logs c761a9b631817
+
+### Execute command in the running container
+> crictl exec -it e43ad675be1f5 cilium-dbg status --brief
+OK
+
+### Inspect the container and pod sandbox (JSON), e.g. mounts, environment variables and runtime spec
+> crictl inspect e43ad675be1f5 | less
+> crictl inspectp 89d279f9fb135 | less
+
+### Resource usage
+> crictl stats
+```
+
+- Images on the node
+
+```bash
+> crictl images
+IMAGE                                           TAG                  IMAGE ID            SIZE
+registry.k8s.io/coredns/coredns                 v1.14.6              520212b8b0fcd       23.8MB
+registry.k8s.io/kube-proxy                      v1.37.0              d6a28daf3e6b0       82.8MB
+registry.k8s.io/pause                           3.10                 873ed75102791       320kB
+quay.io/cilium/cilium                           <none>               e8a7b89d30c07       258MB
+docker.io/tomoyafujita/ros                      rolling              31533583b2f5e       7.24GB
+...<snip>
+
+### Pull the image to the node beforehand
+> crictl pull docker.io/tomoyafujita/ros:rolling
+### Remove unused images to free the disk space
+> crictl rmi --prune
+```
+
+see [Debugging Kubernetes nodes with crictl](https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/) for more details.
+
+### Inspect containerd directly with `ctr`
+
+`ctr` is the low-level command line client of containerd, it is installed with `containerd.io` package.
+`ctr` does not know anything about Kubernetes pods, it shows the containerd objects such as containers, tasks and images in the containerd namespace.
+Kubernetes (CRI plugin) uses `k8s.io` namespace, so that `-n k8s.io` must be specified to see the containers managed by `kubelet`.
+
+```bash
+> ctr --version
+ctr github.com/containerd/containerd/v2 v2.3.4
+
+### containerd namespaces, kubernetes uses k8s.io
+> ctr namespaces ls
+NAME   LABELS
+k8s.io
+
+### Containers and running tasks (processes) in k8s.io namespace
+> ctr -n k8s.io containers ls
+> ctr -n k8s.io tasks ls
+
+### Images in k8s.io namespace, the same with crictl images
+> ctr -n k8s.io images ls -q
+```
+
+`ctr` is useful to check the containerd internal state (e.g. snapshots, content store and leases) when `crictl` does not work, but `crictl` is recommended for the daily debugging since it understands pods and containers in Kubernetes.
+see [ctr reference](https://labs.iximiuz.com/courses/containerd-cli/ctr/image-management) for more details.
+
+### Debug the node without login
+
+If `ssh` to the node is not available but `kubectl` works, [`kubectl debug node`](https://kubernetes.io/docs/tasks/debug/debug-cluster/kubectl-node-debug/) creates the privileged debugging pod on the node with the host filesystem mounted on `/host`.
+
+```bash
+> kubectl debug node/kind-worker -it --image=ubuntu:24.04 --profile=sysadmin
+root@kind-worker:/# chroot /host
+root@kind-worker:/# crictl ps
+root@kind-worker:/# journalctl -u kubelet -e
+```
+
 ## Cilium
 
 ### ROS 2 nodes on different cluster nodes cannot discover each other

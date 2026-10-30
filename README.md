@@ -114,6 +114,7 @@ All deployment samples in this repository are re-verified with Cilium multicast 
   - [Reserve Resources for Host System](./docs/Robotics_System_General.md#reserve-resources-for-host-system)
   - [Assign Resources to Pods/Containers](./docs/Robotics_System_General.md#assign-resources-to-podscontainers)
 - [Trouble Shooting](./docs/Trouble_Shooting.md)
+  - [Inspect Containers on the Node with crictl](./docs/Trouble_Shooting.md#inspect-containers-on-the-node-with-crictl)
 
 ## Slides / Talks
 
