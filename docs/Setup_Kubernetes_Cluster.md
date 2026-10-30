@@ -344,6 +344,51 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
                                      10.244.2.43   Remote Node
   ```
 
+- Multicast Group Address, UDP Port and `ROS_DOMAIN_ID`
+
+  The DDS well-known multicast group address `239.255.0.1` is **independent from the DDS domain ID** (`ROS_DOMAIN_ID`), that is said one multicast group `239.255.0.1` is enough for all ROS 2 domains.
+  [RTPS specification](https://www.omg.org/spec/DDSI-RTPS/) encodes the domain ID into the **UDP port number** instead of the multicast address, the default port mapping is the following.
+
+  | Traffic | Default Port | Note |
+  | --- | --- | --- |
+  | Discovery (SPDP) multicast | `7400 + 250 * ROS_DOMAIN_ID` | `PB + DG * domainId + d0` (`PB=7400`, `DG=250`, `d0=0`) |
+  | User data multicast | `7401 + 250 * ROS_DOMAIN_ID` | `PB + DG * domainId + d2` (`d2=1`), only used if subscriptions request multicast |
+  | Discovery (SPDP) unicast | `7410 + 250 * ROS_DOMAIN_ID + 2 * participantId` | `d1=10`, `PG=2` |
+  | User data unicast | `7411 + 250 * ROS_DOMAIN_ID + 2 * participantId` | `d3=11`, `PG=2` |
+
+  e.g) `ROS_DOMAIN_ID=0` uses `239.255.0.1:7400`, `ROS_DOMAIN_ID=7` uses `239.255.0.1:9150` and `ROS_DOMAIN_ID=42` uses `239.255.0.1:17900` for the discovery.
+  Since UDP port number is 16 bits, the default port mapping only works with `ROS_DOMAIN_ID` from `0` to `232`, see [The ROS_DOMAIN_ID](https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Domain-ID.html) for the details.
+
+  Cilium multicast forwards the packets based on the multicast group address regardless of the UDP port, so that the following verification shows that ROS 2 talker and listener on the different cluster nodes can discover each other with `ROS_DOMAIN_ID=42` (Fast DDS) and `ROS_DOMAIN_ID=7` (Cyclone DDS) with the group `239.255.0.1` configured above.
+  The multicast packets can be observed by [Hubble](#enable-hubble-observability) CLI in the `cilium-agent` container on the node, `Multicast handled` verdict is reported as `DROPPED` since the packet is consumed and replicated to the subscribers by the Cilium multicast datapath (eBPF).
+
+  ```bash
+  ### talker (kind-worker) and listener (kind-worker2) with ROS_DOMAIN_ID=42
+  > kubectl logs listener-d42 --tail=2
+  [INFO] [1792430969.010081692] [listener]: I heard: [Hello World: 13]
+  [INFO] [1792430970.010012735] [listener]: I heard: [Hello World: 14]
+
+  ### observe the multicast packets with hubble in the cilium-agent container on kind-worker
+  > CILIUM_POD=$(kubectl -n kube-system get pods -l k8s-app=cilium --field-selector spec.nodeName=kind-worker -o name)
+  > kubectl -n kube-system exec $CILIUM_POD -c cilium-agent -- hubble observe --to-ip 239.255.0.1 --last 20
+  Oct 19 17:29:58.466: default/listener-d42:37373 (ID:8663) <> 239.255.0.1:17900 (world) Multicast handled DROPPED (UDP)
+  Oct 19 17:29:58.504: default/talker-d42:39513 (ID:40187) <> 239.255.0.1:17900 (world) Multicast handled DROPPED (UDP)
+  Oct 19 17:30:03.965: default/listener-cyclone-d7:42686 (ID:8663) <> 239.255.0.1:9150 (world) Multicast handled DROPPED (UDP)
+  Oct 19 17:30:04.109: default/talker-cyclone-d7:46227 (ID:8663) <> 239.255.0.1:9150 (world) Multicast handled DROPPED (UDP)
+  ```
+
+  Multicast group address needs to be added to Cilium if the application does not use the default `239.255.0.1`, for example,
+
+  - DDS participant uses the user-defined multicast locator via XML profile ([Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/fastdds/xml_configuration/domainparticipant.html#builtin-parameters) `metatrafficMulticastLocatorList`, [Cyclone DDS](https://cyclonedds.io/docs/cyclonedds/latest/config/config_file_reference.html) `General/Interfaces` and `Discovery/SPDPMulticastAddress`).
+  - [rmw_zenoh](https://github.com/ros2/rmw_zenoh) uses `224.0.0.224:7446` for the scouting (discovery) in default, which is `224.0.0.0/24` link-local scope that is not forwarded to the other nodes.
+  - [Gazebo Transport](https://gazebosim.org/api/transport/14/envvars.html) uses `239.255.0.7:10317` for the discovery in default.
+
+  ```bash
+  ### Add the multicast group for Gazebo Transport discovery
+  > cilium multicast add --group-ip 239.255.0.7
+  > cilium multicast list group
+  ```
+
 - Configure Multicast Group and Subscribers (Manually)
 
   **For each cilium pod**, we can also configure multicast groups and subscribers manually.
