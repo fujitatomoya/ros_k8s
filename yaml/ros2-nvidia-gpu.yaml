@@ -1,0 +1,42 @@
+# ROS 2 application container with NVIDIA GPU allocated by NVIDIA device plugin.
+# see docs/ROS2_Deployment_Intermediate.md#ros-2-hardware-acceleration-with-nvidia-gpu
+#
+# Prerequisites on the GPU node: NVIDIA driver, NVIDIA Container Toolkit configured for containerd,
+# and NVIDIA device plugin deployed in the cluster (nvidia.com/gpu resource is advertised by the node).
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-gpu-talker
+  labels:
+    app: ros2-gpu-talker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-gpu-talker
+  template:
+    metadata:
+      labels:
+        app: ros2-gpu-talker
+    spec:
+      ### Required if nvidia is not the default runtime of containerd (RuntimeClass nvidia must be created)
+      #runtimeClassName: nvidia
+      containers:
+      - name: ros2-gpu-talker
+        image: tomoyafujita/ros:rolling
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # nvidia-smi and the driver libraries are injected by NVIDIA Container Toolkit, GPU application (CUDA, TensorRT) can run here.
+        args: ["nvidia-smi && source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run demo_nodes_cpp talker"]
+        resources:
+          limits:
+            # Request 1 GPU, the pod is scheduled only to the node that has the allocatable GPU.
+            nvidia.com/gpu: 1
+      ### GPU nodes are often tainted with nvidia.com/gpu to keep the GPU for the GPU workloads
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always

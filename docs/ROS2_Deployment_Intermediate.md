@@ -452,3 +452,113 @@ kubectl delete -f ./yaml/ros2-security-sample.yaml
 kubectl delete -f ./yaml/ros2-security-config.yaml
 kubectl delete configmap talker-enclaves listener-enclaves
 ```
+
+### ROS 2 Hardware Acceleration with NVIDIA GPU
+
+It is likely to have the hardware acceleration such as NVIDIA GPU on the edge devices for AI / ML processing, perception and simulation.
+GPU should be managed as the custom resource in Kubernetes, so that the cluster administrator can bind the GPU to the specific application containers via the deployment description, and the scheduler places the GPU application pods to the nodes that have the GPU.
+
+![Device Plugin](./../presentation/images/device_plugin.png)
+
+Kubernetes provides [Device Plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) framework to advertise the hardware resources to `kubelet`, and [NVIDIA device plugin](https://github.com/NVIDIA/k8s-device-plugin) advertises `nvidia.com/gpu` resource for each GPU node.
+Besides that, [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html) injects the GPU devices and driver libraries (`libcuda.so`, `nvidia-smi` and so on) into the container when the container runtime starts it, so that the application container image does not need to include the driver.
+
+> [!NOTE]
+> The following procedure follows [NVIDIA Container Toolkit Installation Guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and [NVIDIA device plugin](https://github.com/NVIDIA/k8s-device-plugin) with NVIDIA Container Toolkit `v1.20.1` and NVIDIA device plugin `v0.20.1`.
+> The container toolkit part is verified with Docker on the host system that has NVIDIA GeForce RTX 5070 Ti (driver `595.91.07`), the device plugin part on the cluster is based on the upstream documentation.
+> kind cluster cannot use the GPU without the Docker daemon reconfiguration on the host (NVIDIA runtime as the default runtime and `accept-nvidia-visible-devices-as-volume-mounts`), see [Running kind with GPUs](https://www.substratus.ai/blog/kind-with-gpus) for the details.
+
+**see deployment description [ROS 2 GPU Talker](./../yaml/ros2-nvidia-gpu.yaml)**
+
+- Install NVIDIA driver and NVIDIA Container Toolkit on the GPU node
+
+  NVIDIA driver must be installed on the GPU node (`nvidia-smi` works on the host system), and then install NVIDIA Container Toolkit as following.
+  See [Installing the NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) for the details and the latest version.
+  (NVIDIA Jetson with JetPack 5 or later includes NVIDIA Container Toolkit already, the integrated GPU is supported with the toolkit `v1.11.0` or later.)
+
+```bash
+> sudo su -
+> nvidia-smi --query-gpu=name,driver_version --format=csv
+name, driver_version
+NVIDIA GeForce RTX 5070 Ti, 595.91.07
+
+### Configure the production repository and install NVIDIA Container Toolkit
+> curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+> curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+> apt-get update
+> export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.20.1-1
+> apt-get install -y nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
+> nvidia-ctk --version
+NVIDIA Container Toolkit CLI version 1.20.1
+```
+
+- Configure containerd to use NVIDIA Container Runtime
+
+  `nvidia-ctk runtime configure` adds `nvidia` runtime to the containerd configuration (drop-in file `/etc/containerd/conf.d/99-nvidia.toml` imported from `/etc/containerd/config.toml`).
+  NVIDIA device plugin requires `nvidia` runtime to be the **default** runtime, otherwise [RuntimeClass](https://kubernetes.io/docs/concepts/containers/runtime-class/) `nvidia` must be created and specified with `runtimeClassName` in the GPU pods.
+
+```bash
+> nvidia-ctk runtime configure --runtime=containerd --set-as-default
+> systemctl restart containerd
+
+### Check the runtime configuration
+> grep -A3 'containerd.runtimes.nvidia' /etc/containerd/conf.d/99-nvidia.toml
+```
+
+  The injection can be checked with Docker on the GPU node before deploying to the cluster, `nvidia-smi` and the driver libraries are available in the ROS 2 container.
+
+```bash
+> nvidia-ctk runtime configure --runtime=docker && systemctl restart docker
+> docker run --rm --gpus all tomoyafujita/ros:rolling bash -c 'nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv && ls /usr/lib/x86_64-linux-gnu/ | grep -c libnvidia'
+name, driver_version, memory.total [MiB]
+NVIDIA GeForce RTX 5070 Ti, 595.91.07, 16303 MiB
+53
+```
+
+- Deploy NVIDIA device plugin
+
+  NVIDIA device plugin is deployed as DaemonSet via Helm chart, see [Deployment via helm](https://github.com/NVIDIA/k8s-device-plugin#deployment-via-helm) for the details and the configuration options such as time-slicing and MIG.
+  `--set gfd.enabled=true` also deploys [GPU Feature Discovery](https://github.com/NVIDIA/k8s-device-plugin/tree/main/docs/gpu-feature-discovery) that labels the GPU nodes (`nvidia.com/gpu.present=true`, product name, driver version and so on) with Node Feature Discovery.
+
+```bash
+> helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
+> helm repo update
+> helm upgrade -i nvdp nvdp/nvidia-device-plugin --namespace nvidia-device-plugin --create-namespace --version 0.20.1
+
+### Device plugin pods run on every node, the pod on the node w/o GPU just logs that no devices are found
+> kubectl get pods -n nvidia-device-plugin -o wide
+
+### GPU node advertises nvidia.com/gpu resource
+> kubectl describe node <gpu-node> | grep -A8 -E '^(Capacity|Allocatable):' | grep -E 'Capacity|Allocatable|nvidia.com/gpu'
+Capacity:
+  nvidia.com/gpu:     1
+Allocatable:
+  nvidia.com/gpu:     1
+```
+
+- Deploy ROS 2 application with GPU
+
+  [ROS 2 GPU Talker](./../yaml/ros2-nvidia-gpu.yaml) requests 1 GPU with `resources.limits.nvidia.com/gpu`, Kubernetes schedules the pod to the node that has the allocatable GPU and the device plugin allocates the GPU to the container exclusively.
+  `nvidia-smi` in the container shows the GPU allocated, and the GPU application (CUDA, TensorRT, [Isaac ROS](https://nvidia-isaac-ros.github.io/) and so on) can be started in the same way.
+
+```bash
+> kubectl apply -f ./yaml/ros2-nvidia-gpu.yaml
+deployment.apps/ros2-gpu-talker created
+
+> kubectl get pods -o wide
+> kubectl logs deployment/ros2-gpu-talker
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 595.91.07              Driver Version: 595.91.07      CUDA Version: 13.x     |
+...<snip>
+[INFO] [...] [talker]: Publishing: 'Hello World: 1'
+
+### Pods requesting GPU more than allocatable stay in Pending with Insufficient nvidia.com/gpu
+> kubectl describe pod <pod-name> | grep -A3 Events
+```
+
+- Stop deployment
+
+```bash
+> kubectl delete -f ./yaml/ros2-nvidia-gpu.yaml
+> helm uninstall nvdp -n nvidia-device-plugin
+```
