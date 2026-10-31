@@ -92,6 +92,7 @@ All deployment samples in this repository are re-verified with Cilium multicast 
 - [Setup KubeEdge Cloud/Edge Node](./docs/Setup_KubeEdge.md)
   - [Setup Kubernetes API server](./docs/Setup_KubeEdge.md#setup-kubernetes-api-server)
   - [Setup KubeEdge Cloudcore and Edgecore](./docs/Setup_KubeEdge.md#setup-kubeedge)
+  - [micro-ROS Far Edge Devices](./docs/Setup_KubeEdge.md#micro-ros-far-edge-devices)
 - [Setup Virtualized Kubernetes Cluster](./docs/Setup_Virtualized_Cluster.md)
   - [What is Kubernetes IN Docker](./docs/Setup_Virtualized_Cluster.md#kubernetes-in-docker)
   - [Single Node Cluster Setup](./docs/Setup_Virtualized_Cluster.md#single-node-cluster-setup)
