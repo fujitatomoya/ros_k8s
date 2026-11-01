@@ -1,0 +1,101 @@
+# Gazebo (gz-sim) headless simulation server with ros_gz_bridge, and ROS 2 application container on the other node.
+# see docs/ROS2_Gazebo_Simulation.md
+#
+# Gazebo Transport uses its own discovery with UDP multicast 239.255.0.7:10317, the multicast group must be added to Cilium.
+#   cilium multicast add --group-ip 239.255.0.7
+# GZ_PARTITION must be the same for all Gazebo Transport nodes (default is <hostname>:<username>, which is different for each pod).
+
+###################################
+### Gazebo Simulation Server    ###
+###################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gz-sim-server
+  labels:
+    app: gz-sim-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gz-sim-server
+  template:
+    metadata:
+      labels:
+        app: gz-sim-server
+    spec:
+      containers:
+      ### Gazebo server (physics, sensors) without GUI
+      - name: gz-sim-server
+        image: tomoyafujita/ros:jazzy-gazebo
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # -s: server only (headless), -r: run the simulation at start, -v: verbosity
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && gz sim -s -r -v 1 diff_drive.sdf"]
+        env:
+        - name: GZ_PARTITION
+          value: ros_k8s
+      ### ROS 2 - Gazebo Transport bridge, runs in the same pod with the server
+      - name: ros-gz-bridge
+        image: tomoyafujita/ros:jazzy-gazebo
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # [ : Gazebo -> ROS 2, ] : ROS 2 -> Gazebo, @ : bidirectional
+        # see https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock /model/vehicle_blue/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist /model/vehicle_blue/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry"]
+        env:
+        - name: GZ_PARTITION
+          value: ros_k8s
+      ### select the node for the simulation (physics / graphics computation), e.g. edge server or cloud node
+      nodeSelector:
+        nodetype: simserver
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
+
+---
+
+###################################
+### ROS 2 Application Container ###
+###################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ros2-gz-teleop
+  labels:
+    app: ros2-gz-teleop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ros2-gz-teleop
+  template:
+    metadata:
+      labels:
+        app: ros2-gz-teleop
+    spec:
+      containers:
+      - name: ros2-gz-teleop
+        image: tomoyafujita/ros:jazzy-gazebo
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # Subscribe the odometry from the simulation via ros_gz_bridge, jump in this container to control the robot.
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic echo /model/vehicle_blue/odometry --field pose.pose.position"]
+        env:
+        - name: GZ_PARTITION
+          value: ros_k8s
+      ### select the node w/o display for the application, e.g. edge device
+      nodeSelector:
+        nodetype: edgedevice
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always

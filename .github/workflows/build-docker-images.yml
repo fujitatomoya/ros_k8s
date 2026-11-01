@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        distro: [noetic, jazzy, rolling]
+        distro: [noetic, jazzy, rolling, jazzy-gazebo]
 
     steps:
     - name: Check out repository code

@@ -1,0 +1,56 @@
+# Gazebo GUI client on the node with display, connecting to the headless Gazebo server (yaml/ros2-gazebo.yaml) via Gazebo Transport.
+# see docs/ROS2_Gazebo_Simulation.md and docs/ROS2_Deployment_Intermediate.md#ros-2-gui-display-access
+#
+# The node with display must be labeled with nodetype=edgeserver, and xhost access control must be disabled on the node.
+#   xhost +local:root
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gz-sim-gui
+  labels:
+    app: gz-sim-gui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gz-sim-gui
+  template:
+    metadata:
+      labels:
+        app: gz-sim-gui
+    spec:
+      containers:
+      - name: gz-sim-gui
+        image: tomoyafujita/ros:jazzy-gazebo
+        imagePullPolicy: IfNotPresent
+        tty: true
+        command: ["/bin/bash", "-c"]
+        # -g: GUI only, connects to the running server via Gazebo Transport (GZ_PARTITION must be the same with the server)
+        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && gz sim -g -v 1"]
+        env:
+        - name: GZ_PARTITION
+          value: ros_k8s
+        ### bind host environment variable to container, this must be aligned with DISPLAY on the node
+        - name: DISPLAY
+          value: ":1"
+        ### Qt / OpenGL software rendering fallback if the node does not have GPU access from the container
+        #- name: LIBGL_ALWAYS_SOFTWARE
+        #  value: "1"
+        ### mounting host X11 socket to container
+        volumeMounts:
+        - mountPath: /tmp/.X11-unix
+          name: xserver
+      ### select the node with display for the GUI
+      nodeSelector:
+        nodetype: edgeserver
+      volumes:
+      - name: xserver
+        hostPath:
+          path: /tmp/.X11-unix
+          type: Directory
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Always
