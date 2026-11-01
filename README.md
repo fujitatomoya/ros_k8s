@@ -126,6 +126,7 @@ All deployment samples in this repository are re-verified with Cilium multicast 
 - [ROS with Kubernetes Introduction in ROS TSC Meeting](https://www.slideshare.net/FujitaTomoya/rostscrosk8s20230309pdf)
 - [ROSCon 2023 ROS / ROS 2 with Kubernetes and KubeEdge](https://roscon.ros.org/2023/talks/ROS_with_KubernetesKubeEdge.pdf) / [Talk](https://vimeo.com/879001688/33b2495a49)
 - [ROS By the Bay Presentation Slide Deck](https://raw.githack.com/fujitatomoya/ros_k8s/master/presentation/ROS-By-the-Bay_20231214.html)
+- [ROS 2 with Kubernetes and KubeEdge Overview 2026 Slide Deck](https://raw.githack.com/fujitatomoya/ros_k8s/main/presentation/ROS-K8s-Overview_2026.html)
 
 [![Watch the video](https://img.youtube.com/vi/Amxsy5A2NWE/maxresdefault.jpg)](https://www.youtube.com/watch?v=Amxsy5A2NWE)
 
