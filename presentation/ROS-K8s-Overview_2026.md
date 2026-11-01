@@ -21,11 +21,6 @@ style: |
 
 # ROS 2 with Kubernetes and KubeEdge
 
-## Overview and Current Status (October 2026)
-
-Tomoya Fujita
-[github.com/fujitatomoya](https://github.com/fujitatomoya)
-
 <!---
 # Overview slide deck for https://github.com/fujitatomoya/ros_k8s
 # Summarizes the current status of the repository as of October 2026.
@@ -406,31 +401,6 @@ evictionHard:
 
 - Raspberry Pi 4: allocatable 4 -> 2 CPUs, 8 -> 4 GiB
 - Pod `requests` / `limits` on the application side
-
----
-
-# What Has Changed Since 2023
-
-- WeaveNet (EOL) -> **Cilium** with eBPF multicast, Hubble, encryption
-- Kubernetes Dashboard (retired) -> **Headlamp**
-- Ubuntu 22.04 -> **24.04**, Kubernetes v1.25 -> **v1.37**, containerd 1.6 -> **2.x**
-- kind v0.16 -> **v0.33**, KubeEdge v1.14 -> **v1.23.1** (Kubernetes pinned to v1.32 for KubeEdge)
-- New samples: zero copy, discovery server, SROS2 enclaves (closed #31, #18)
-- ROS 2 Rolling only -> **Jazzy LTS + Rolling**, ROS 1 Noetic reached EOL
-- `cilium multicast` CLI replaces per-node `cilium-dbg` operation
-
----
-
-# Roadmap / Open Topics
-
-- [#66](https://github.com/fujitatomoya/ros_k8s/issues/66) OpenKruise advanced CRDs for edge (in-place update)
-- [#39](https://github.com/fujitatomoya/ros_k8s/issues/39) Gazebo simulation tutorial
-- [#17](https://github.com/fujitatomoya/ros_k8s/issues/17) NVIDIA device plugin
-- [#3](https://github.com/fujitatomoya/ros_k8s/issues/3) KubeEdge with far-edge micro-ROS
-- [#42](https://github.com/fujitatomoya/ros_k8s/issues/42) re-verify samples with Cilium multicast
-- [#62](https://github.com/fujitatomoya/ros_k8s/issues/62) DDS multicast address vs `ROS_DOMAIN_ID`
-- [#54](https://github.com/fujitatomoya/ros_k8s/issues/54) SROS2 `ros2cli` output
-- [#49](https://github.com/fujitatomoya/ros_k8s/issues/49) `crictl` debugging on nodes
 
 ---
 
