@@ -24,7 +24,7 @@ spec:
         tty: true
         image: tomoyafujita/ros:noetic
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && roscore"]
+        args: ["ulimit -n 65536; source /opt/ros/$ROS_DISTRO/setup.bash && roscore"]
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 11311
@@ -82,7 +82,7 @@ spec:
         tty: true
         image: tomoyafujita/ros:noetic
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rosrun roscpp_tutorials talker"]
+        args: ["ulimit -n 65536; source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rosrun roscpp_tutorials talker"]
         imagePullPolicy: IfNotPresent
         env:
         - name: ROS_MASTER_URI
@@ -136,7 +136,7 @@ spec:
         tty: true
         image: tomoyafujita/ros:noetic
         command: ["/bin/bash", "-c"]
-        args: ["source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rosrun rospy_tutorials listener.py"]
+        args: ["ulimit -n 65536; source /opt/ros/$ROS_DISTRO/setup.bash && until rostopic list; do sleep 1; done && rosrun rospy_tutorials listener.py"]
         imagePullPolicy: IfNotPresent
         env:
         - name: ROS_MASTER_URI
