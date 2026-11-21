@@ -104,12 +104,22 @@ function configure_system() {
     ### kubelet fails to start if swap is enabled (unless failSwapOn=false)
     swapoff -a
     sed -i.bak '/\sswap\s/s/^\(.*\)$/#\1/g' /etc/fstab
-    ### IPv4 forwarding is required for Kubernetes networking
+    ### overlay and br_netfilter kernel modules are required by the container runtime and CNI plugins (e.g. flannel)
+    ### see https://kubernetes.io/docs/setup/production-environment/container-runtimes/#install-and-configure-prerequisites
+    cat <<EOF > /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+    modprobe overlay
+    modprobe br_netfilter
+    ### IPv4 forwarding is required for Kubernetes networking, bridged traffic must be visible to iptables
     cat <<EOF > /etc/sysctl.d/k8s.conf
 net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
 EOF
     sysctl --system > /dev/null
-    sysctl net.ipv4.ip_forward
+    sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables
 }
 
 function install_container_runtime () {
@@ -159,13 +169,15 @@ function install_kubernetes () {
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" > /etc/apt/sources.list.d/kubernetes.list
     chmod 644 /etc/apt/sources.list.d/kubernetes.list
     apt update -y
-    apt remove -y --allow-change-held-packages kubelet kubectl kubeadm || true
-    apt install -y kubelet kubeadm kubectl
-    apt-mark hold kubelet kubeadm kubectl
+    apt remove -y --allow-change-held-packages kubelet kubectl kubeadm cri-tools || true
+    ### cri-tools (crictl) is not a dependency of kubeadm since v1.37, install it explicitly for the node debugging.
+    apt install -y kubelet kubeadm kubectl cri-tools
+    apt-mark hold kubelet kubeadm kubectl cri-tools
     systemctl enable --now kubelet
     kubeadm version
     ### kubectl version will try to access server that leads to error to exit this script
     kubectl version --client
+    crictl --version
 }
 
 function install_kind () {

@@ -61,19 +61,31 @@ net.ifnames=0 dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=LABE
 ## System Configuration
 
 `kubelet` fails to start if swap memory is enabled on the node, and IPv4 forwarding is required for the Kubernetes networking.
+`overlay` and `br_netfilter` kernel modules are required by the container runtime and CNI plugins (Flannel fails to start with `Failed to check br_netfilter` without it), see [Install and configure prerequisites](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#install-and-configure-prerequisites).
 
 ```bash
 ### Disable swap now and after reboot
 > swapoff -a
 > sed -i '/\sswap\s/s/^\(.*\)$/#\1/g' /etc/fstab
 
-### Enable IPv4 forwarding
+### Load overlay and br_netfilter kernel modules now and after reboot
+> cat <<EOF > /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+> modprobe overlay
+> modprobe br_netfilter
+
+### Enable IPv4 forwarding and iptables to see the bridged traffic
 > cat <<EOF > /etc/sysctl.d/k8s.conf
 net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
 EOF
 > sysctl --system
-> sysctl net.ipv4.ip_forward
+> sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables
 net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-iptables = 1
 ```
 
 ## Docker / Containerd
@@ -146,7 +158,7 @@ Kubernetes apt repository is hosted per minor version on [pkgs.k8s.io](https://k
 
 ```bash
 ### uninstall if installed already
-> apt remove -y --allow-change-held-packages kubelet kubectl kubeadm
+> apt remove -y --allow-change-held-packages kubelet kubectl kubeadm cri-tools
 
 ### install kubernetes
 > apt install -y apt-transport-https ca-certificates curl gpg
@@ -156,16 +168,19 @@ Kubernetes apt repository is hosted per minor version on [pkgs.k8s.io](https://k
 > echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.37/deb/ /' > /etc/apt/sources.list.d/kubernetes.list
 > chmod 644 /etc/apt/sources.list.d/kubernetes.list
 > apt update
-> apt install -y kubelet kubeadm kubectl
-> apt-mark hold kubelet kubeadm kubectl
+### cri-tools (crictl) is not a dependency of kubeadm since v1.37, install it explicitly for the node debugging
+> apt install -y kubelet kubeadm kubectl cri-tools
+> apt-mark hold kubelet kubeadm kubectl cri-tools
 > systemctl enable --now kubelet
 
 ### kubectl version will try to access server, use --client
 > kubeadm version
-kubeadm version: &version.Info{Major:"1", Minor:"37", GitVersion:"v1.37.0", ...}
+kubeadm version: &version.Info{Major:"1", Minor:"37", GitVersion:"v1.37.2", ...}
 > kubectl version --client
-Client Version: v1.37.0
+Client Version: v1.37.2
 Kustomize Version: v5.7.1
+> crictl --version
+crictl version v1.37.0
 ```
 
 ## Kind
