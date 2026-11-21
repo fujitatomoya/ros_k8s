@@ -216,7 +216,9 @@ IPsec encryption requires key, the following procedure uses Kubernetes Secret to
 see [IPsec Transparent Encryption](https://docs.cilium.io/en/stable/security/network/encryption-ipsec/) for more details.
 
 > [!NOTE]
-> Cilium multicast (used by ROS 2 / DDS discovery) does not work together with IPsec encryption between Cilium-managed pods.
+> [Cilium multicast](https://docs.cilium.io/en/stable/network/multicast/) (used by ROS 2 / DDS discovery) is documented **not** to work together with IPsec encryption between Cilium-managed pods.
+> With Cilium `v1.20.2` on the kind cluster, the ROS 2 talker and listener on the different nodes still discovered each other via `239.255.0.1` after IPsec was enabled, but this is not supported upstream (see [cilium/cilium#29471](https://github.com/cilium/cilium/issues/29471)), and the multicast packets are not guaranteed to be encrypted.
+> Do not rely on it, use unicast discovery such as [Fast-DDS Discovery Server](./ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) if the encryption is required.
 
 ```bash
 ### If cilium is already deployed, uninstall from cluster system
@@ -291,7 +293,7 @@ Requirements:
 
 - Cilium runs in tunnel (`vxlan`) routing mode, which is the default of `cilium install`.
 - Linux kernel 5.10 or later on amd64, 6.0 or later on arm64 (Ubuntu 24.04 kernel 6.8 satisfies both).
-- IPsec encryption is not supported together with multicast.
+- IPsec encryption is not supported together with multicast, see [Enable Security Encryption](#enable-security-encryption).
 
 In default Cilium multicast feature is disabled, so we need to walk through the following configuration.
 
@@ -454,7 +456,18 @@ In default Cilium multicast feature is disabled, so we need to walk through the 
 ### [Flannel](https://github.com/flannel-io/flannel)
 
 Flannel is a simple layer 3 overlay network that does not support multicast, so it can be used for ROS 1 or ROS 2 with unicast discovery (e.g. Fast DDS Discovery Server).
-`kubeadm init` requires `--pod-network-cidr=10.244.0.0/16` for the default Flannel configuration.
+`kubeadm init` requires `--pod-network-cidr=10.244.0.0/16` for the default Flannel configuration, and `br_netfilter` kernel module must be loaded on every node (see [System Configuration](./Install_Kubernetes_Packages.md#system-configuration)), otherwise `kube-flannel` pods fail with `Failed to check br_netfilter`.
+
+> [!NOTE]
+> If Cilium was deployed in the cluster before, `cilium uninstall` leaves `/etc/cni/net.d/05-cilium.conflist` (that takes precedence over `10-flannel.conflist`) and `cilium_vxlan` device (that holds the VXLAN UDP port `8472` used by Flannel as well, `failed to set interface flannel.1 to UP state: address already in use`) on every node.
+> Remove them on every node (or [Break down the cluster](#break-down-the-cluster) and reboot) before deploying Flannel.
+>
+> ```bash
+> > rm -f /etc/cni/net.d/05-cilium.conflist
+> > ip link delete cilium_vxlan; ip link delete cilium_host; ip link delete cilium_net
+> ```
+>
+> On the node with multiple network interfaces, Flannel uses the interface of the default route in default, add `--iface=<cluster interface>` to `kube-flannel` container arguments in `kube-flannel.yml` if the default route is not the cluster interface.
 
 ```bash
 ### Install

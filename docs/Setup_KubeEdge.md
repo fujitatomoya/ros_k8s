@@ -106,13 +106,15 @@ STATUS: deployed
 REVISION: 1
 
 > kubectl get all -n kubeedge
-NAME                             READY   STATUS    RESTARTS   AGE
-pod/cloudcore-xxxxxxxxxx-xxxxx   1/1     Running   0          42s
+NAME                               READY   STATUS    RESTARTS   AGE
+pod/cloud-iptables-manager-xxxxx   1/1     Running   0          42s
+pod/cloudcore-xxxxxxxxxx-xxxxx     1/1     Running   0          42s
 
 NAME                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                             AGE
 service/cloudcore   ClusterIP   10.111.74.141   <none>        10000/TCP,10001/UDP,10002/TCP,10003/TCP,10004/TCP   42s
 
 NAME                                    DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/cloud-iptables-manager   1         1         1       1            1           <none>          42s
 daemonset.apps/edge-eclipse-mosquitto   0         0         0       0            0           <none>          42s
 
 NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
@@ -153,8 +155,9 @@ active
 ### edge node
 > keadm join --cloudcore-ipport=<YOUR_IP_ADDRESS>:10000 --token=<YOUR_TOKEN> --kubeedge-version=v1.23.1 --remote-runtime-endpoint=unix:///run/containerd/containerd.sock --cgroupdriver=systemd
 ...<snip>
-I1014 15:39:14.636693  990048 join_others.go:273] KubeEdge edgecore is running, For logs visit: journalctl -u edgecore.service -xe
-I1014 15:39:24.645991  990048 join.go:94] 9. Install Complete!
+I1121 10:09:00.431270   34435 join_others.go:223] 9. Run EdgeCore daemon
+I1121 10:09:00.746101   34435 join_others.go:301] KubeEdge edgecore is running, For logs visit: journalctl -u edgecore.service -xe
+I1121 10:09:10.746441   34435 join_others.go:243] 10. Install Complete!
 
 > systemctl status edgecore
 ● edgecore.service
@@ -177,9 +180,71 @@ I1014 15:39:24.645991  990048 join.go:94] 9. Install Complete!
 ```bash
 ### cloud node
 > kubectl get nodes -o wide
-NAME           STATUS   ROLES           AGE   VERSION                    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION     CONTAINER-RUNTIME
-tomoyafujita   Ready    control-plane   30m   v1.32.x                    192.168.1.248   <none>        Ubuntu 24.04 LTS   6.8.0-xx-generic   containerd://2.x.x
-ubuntu         Ready    agent,edge      2m    v1.32.x-kubeedge-v1.23.1   192.168.1.79    <none>        Ubuntu 24.04 LTS   6.8.0-xx-raspi     containerd://2.x.x
+NAME           STATUS   ROLES           AGE   VERSION                     INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION     CONTAINER-RUNTIME
+tomoyafujita   Ready    control-plane   30m   v1.32.13                    192.168.1.248   <none>        Ubuntu 24.04.3 LTS   6.8.0-xx-generic   containerd://2.4.2
+ubuntu         Ready    agent,edge      2m    v1.32.10-kubeedge-v1.23.1   192.168.1.79    <none>        Ubuntu 24.04.3 LTS   6.8.0-xx-raspi     containerd://2.4.2
+```
+
+### Edge Node Readiness
+
+The edge node stays `NotReady` with `container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: cni plugin not initialized` if there is no CNI configuration in `/etc/cni/net.d` on the edge node, since `edgecore` (kubelet) requires the container runtime to report the network ready even for `hostNetwork: true` pods.
+As explained in [Container Network Interface](#container-network-interface-cni), `edgecore` does not deploy the CNI plugin, so the following minimal CNI configuration (node-local bridge network with the standard CNI plugins installed in `/opt/cni/bin` by `kubernetes-cni` package) makes the edge node `Ready`.
+Pods on the edge node only have the node-local network with this configuration, ROS 2 application pods on the edge node use `hostNetwork: true` to communicate with the other nodes.
+
+```bash
+### edge node
+> journalctl -u edgecore -e | grep "network not ready"
+edgecore[34719]: E1121 10:19:35.977751   34719 kubelet.go:2864] "Container runtime network not ready" networkReady="NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: cni plugin not initialized"
+
+> ls /opt/cni/bin
+bandwidth  bridge  dhcp  dummy  firewall  host-device  host-local  ipvlan  loopback  macvlan  portmap  ptp  sbr  static  tap  tuning  vlan  vrf
+> mkdir -p /etc/cni/net.d
+> cat <<EOF > /etc/cni/net.d/10-edge-bridge.conflist
+{
+  "cniVersion": "1.0.0",
+  "name": "edge-bridge",
+  "plugins": [
+    {
+      "type": "bridge",
+      "bridge": "cni0",
+      "isGateway": true,
+      "ipMasq": true,
+      "ipam": {
+        "type": "host-local",
+        "ranges": [[{"subnet": "10.88.0.0/16"}]],
+        "routes": [{"dst": "0.0.0.0/0"}]
+      }
+    },
+    {"type": "loopback"},
+    {"type": "portmap", "capabilities": {"portMappings": true}}
+  ]
+}
+EOF
+
+### cloud node, the edge node becomes Ready in a minute
+> kubectl get nodes
+```
+
+Besides that, the DaemonSets for the Kubernetes worker nodes (`kube-proxy`, `cilium` and `cilium-envoy`) are also scheduled to the edge node, and those pods never become ready on the edge node (`cilium` init container cannot reach the API server via the ClusterIP without `kube-proxy` working on the edge node).
+Add the node affinity to keep those DaemonSets away from the edge nodes, see [KubeEdge Installation](https://kubeedge.io/docs/setup/install-with-keadm/) for the details.
+
+```bash
+### cloud node
+> AFFINITY='{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/edge","operator":"DoesNotExist"}]}]}}}}}}}'
+> for ds in kube-proxy cilium cilium-envoy; do kubectl -n kube-system patch daemonset $ds -p "$AFFINITY"; done
+
+> kubectl get pods -A -o wide --field-selector spec.nodeName=<edge-node>
+```
+
+`cilium-operator` taints the nodes without the running `cilium-agent` with `node.cilium.io/agent-not-ready:NoSchedule` (`set-cilium-node-taints`), and `cilium-agent` never runs on the edge node, so that no pods can be scheduled to the edge node (`0/3 nodes are available: 1 node(s) had untolerated taint {node.cilium.io/agent-not-ready: }`).
+Remove the taint from the edge node, or disable the taint with `cilium config set set-cilium-node-taints false` (that restarts the Cilium pods).
+
+```bash
+### cloud node
+> kubectl describe node <edge-node> | grep Taints
+Taints:             node.cilium.io/agent-not-ready:NoSchedule
+> kubectl taint nodes <edge-node> node.cilium.io/agent-not-ready-
+node/<edge-node> untainted
 ```
 
 ## KubeEdge Test Deployment
@@ -346,12 +411,20 @@ QoS profile:
 
 ## Break Down KubeEdge
 
+`keadm reset` without the node type is not supported since KubeEdge v1.22, use `keadm reset edge` or `keadm reset cloud`.
+`keadm reset` asks for the confirmation, `--force` skips it.
+
 ```bash
-### edge node
-> keadm reset
+### edge node, this stops and removes edgecore service, the containers and the directories managed by KubeEdge
+> keadm reset edge --force
+...<snip>
+I1121 10:25:52.563544   36562 reset_others.go:122] reset edge node successfully!
 > rm -rf /etc/kubeedge /var/lib/kubeedge
 
 ### cloud node, this deletes kubeedge namespace and resources
-> keadm reset --kube-config=/root/.kube/config
+> keadm reset cloud --kube-config=/root/.kube/config --force
 > rm -rf /etc/kubeedge
+
+### the edge node object stays in the cluster, delete it explicitly
+> kubectl delete node <edge-node>
 ```
