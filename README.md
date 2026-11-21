@@ -45,6 +45,9 @@ This is virtualized Kubernetes cluster environment which can be established on s
 We can use this environment if container requires pure computation resource but hardware or physical sensor devices.
 This environment is very much useful to try or test your container images or services to make sure if those work as expected, and easy to break down whole Kubernetes cluster with one command.
 
+  - [Kubernetes IN Docker (kind)](./docs/Setup_Virtualized_Cluster.md): cluster nodes are the containers on the host, the quickest way to try the deployment samples.
+  - [Vagrant Virtual Machines](./docs/Setup_Vagrant_Cluster.md): cluster nodes are Ubuntu 24.04 virtual machines, the same procedures with the physical host systems (`kubeadm`, KubeEdge) can be verified.
+
 ## Verified Versions
 
 | Component | Version |
@@ -75,6 +78,10 @@ All deployment samples in this repository are re-verified with Cilium multicast 
 | [ROS 2 Security Enclaves with ConfigMap](./docs/ROS2_Deployment_Intermediate.md#ros-2-security-enclaves-with-configmap) | [ros2-security-config.yaml](./yaml/ros2-security-config.yaml), [ros2-security-sample.yaml](./yaml/ros2-security-sample.yaml) | **required** | :heavy_check_mark: | |
 | Debug DaemonSet | [ubuntu24-daemonset.yaml](./yaml/ubuntu24-daemonset.yaml) | not required | :heavy_check_mark: | |
 
+> [!NOTE]
+> The deployment samples use `tomoyafujita/ros:<distro>` container images built from [Build Docker Images](./docs/Build_Docker_Images.md).
+> If the image tag is not available on [Docker Hub](https://hub.docker.com/r/tomoyafujita/ros/tags) (or outdated), build the image and load it into the kind nodes with `kind load docker-image` or push it to your own registry, see [Load local container images](./docs/Setup_Virtualized_Cluster.md#multiple-node-cluster-setup).
+
 ## Tutorials
 
 - [Install Kubernetes Packages](./docs/Install_Kubernetes_Packages.md)
@@ -98,6 +105,10 @@ All deployment samples in this repository are re-verified with Cilium multicast 
   - [What is Kubernetes IN Docker](./docs/Setup_Virtualized_Cluster.md#kubernetes-in-docker)
   - [Single Node Cluster Setup](./docs/Setup_Virtualized_Cluster.md#single-node-cluster-setup)
   - [Multiple Nodes Cluster Setup](./docs/Setup_Virtualized_Cluster.md#multiple-node-cluster-setup)
+- [Setup Vagrant Virtual Machine Cluster](./docs/Setup_Vagrant_Cluster.md)
+  - [Virtual Machines](./docs/Setup_Vagrant_Cluster.md#virtual-machines)
+  - [Setup Kubernetes Cluster on Virtual Machines](./docs/Setup_Vagrant_Cluster.md#setup-kubernetes-cluster)
+  - [Setup KubeEdge on Virtual Machines](./docs/Setup_Vagrant_Cluster.md#setup-kubeedge)
 - [ROS Deployment Demonstration](./docs/ROS_Deployment_Demonstration.md)
   - [ROS DaemonSet Deployment](./docs/ROS_Deployment_Demonstration.md#ros-daemonset-deployment-with-cni)
   - [ROS Multi-Node Deployment](./docs/ROS_Deployment_Demonstration.md#ros-multi-node-deployment-with-cni)
