@@ -1,0 +1,120 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+#
+# Vagrant (VirtualBox) virtual machines to verify the physical cluster procedures in this repository.
+#
+#   docs/Install_Kubernetes_Packages.md : install_k8s_packages.sh is executed by the provisioner.
+#   docs/Setup_Kubernetes_Cluster.md    : kubeadm init / join, Cilium and the deployment samples.
+#   docs/Setup_KubeEdge.md              : cloudcore on the control-plane VM, edgecore on a worker VM.
+#
+# Usage:
+#   cd vagrant
+#   vagrant up                      # 1 control-plane + 2 workers (Ubuntu 24.04, Kubernetes v1.37)
+#   vagrant ssh vm-control-plane
+#   vagrant destroy -f              # break down everything
+#
+# Environment variables:
+#   ROS_K8S_WORKERS=2               # number of worker VMs
+#   ROS_K8S_CP_CPUS=2 ROS_K8S_CP_MEMORY=4096 ROS_K8S_WORKER_CPUS=2 ROS_K8S_WORKER_MEMORY=3072
+#   KUBERNETES_VERSION=v1.37        # passed to scripts/install_k8s_packages.sh (e.g. v1.32 for KubeEdge)
+#   KUBEEDGE_VERSION=v1.23.1        # passed to scripts/install_k8s_packages.sh
+#   ROS_K8S_SYNC=rsync              # use rsync instead of VirtualBox shared folder for /vagrant
+#   ROS_K8S_SERVICE_CIDR=10.96.0.0/12  # Kubernetes service CIDR routed to the host-only interface
+#
+# see docs/Setup_Vagrant_Cluster.md for the details.
+
+BOX            = ENV.fetch("ROS_K8S_BOX", "bento/ubuntu-24.04")
+WORKERS        = ENV.fetch("ROS_K8S_WORKERS", "2").to_i
+CP_CPUS        = ENV.fetch("ROS_K8S_CP_CPUS", "2").to_i
+CP_MEMORY      = ENV.fetch("ROS_K8S_CP_MEMORY", "4096").to_i
+WORKER_CPUS    = ENV.fetch("ROS_K8S_WORKER_CPUS", "2").to_i
+WORKER_MEMORY  = ENV.fetch("ROS_K8S_WORKER_MEMORY", "3072").to_i
+SUBNET         = ENV.fetch("ROS_K8S_SUBNET", "192.168.56")
+K8S_VERSION    = ENV.fetch("KUBERNETES_VERSION", "v1.37")
+KUBEEDGE_VER   = ENV.fetch("KUBEEDGE_VERSION", "v1.23.1")
+SYNC_TYPE      = ENV.fetch("ROS_K8S_SYNC", "virtualbox")
+# Kubernetes service CIDR (kubeadm default), routed to the host-only interface, see PROVISION below.
+SERVICE_CIDR   = ENV.fetch("ROS_K8S_SERVICE_CIDR", "10.96.0.0/12")
+
+# node name => [ip, cpus, memory]
+nodes = { "vm-control-plane" => ["#{SUBNET}.10", CP_CPUS, CP_MEMORY] }
+(1..WORKERS).each do |i|
+  name = i == 1 ? "vm-worker" : "vm-worker#{i}"
+  nodes[name] = ["#{SUBNET}.#{10 + i}", WORKER_CPUS, WORKER_MEMORY]
+end
+
+hosts_entries = nodes.map { |name, (ip, _, _)| "#{ip} #{name}" }.join("\n")
+
+# Common provisioning: /etc/hosts, packages via scripts/install_k8s_packages.sh and kubelet node IP.
+# VirtualBox NAT interface (eth0, 10.0.2.15) is the same on every VM, so kubelet must advertise
+# the host-only interface address with --node-ip.
+PROVISION = <<~SHELL
+  set -e
+  NODE_IP="$1"
+  ### /etc/hosts for all cluster nodes
+  sed -i '/# ros_k8s vagrant/d' /etc/hosts
+  cat <<HOSTS >> /etc/hosts
+  #{hosts_entries.gsub(/^/, "")} # ros_k8s vagrant
+  HOSTS
+  sed -i 's/^\\(#{SUBNET}\\.[0-9]* vm-[a-z0-9-]*\\)$/\\1 # ros_k8s vagrant/' /etc/hosts
+  ### install containerd/docker, kubelet/kubeadm/kubectl, kind and keadm
+  export KUBERNETES_VERSION=#{K8S_VERSION}
+  export KUBEEDGE_VERSION=#{KUBEEDGE_VER}
+  /vagrant/scripts/install_k8s_packages.sh -k -y
+  ### kubelet must use the host-only interface address, NAT interface has the same IP on every VM
+  echo "KUBELET_EXTRA_ARGS=--node-ip=${NODE_IP}" > /etc/default/kubelet
+  systemctl daemon-reload
+  systemctl restart kubelet || true
+  ### Route the Kubernetes service CIDR to the host-only interface.
+  ### The default route is the NAT interface (10.0.2.15 on every VM), so that the connections from the host
+  ### network namespace (e.g. cilium-agent init container) to the ClusterIP are sent with the source address
+  ### 10.0.2.15 after DNAT and the replies never come back, see docs/Setup_Vagrant_Cluster.md.
+  cat <<NETPLAN > /etc/netplan/60-ros-k8s-service-cidr.yaml
+  network:
+    version: 2
+    ethernets:
+      eth1:
+        routes:
+        - to: #{SERVICE_CIDR}
+          scope: link
+  NETPLAN
+  chmod 600 /etc/netplan/60-ros-k8s-service-cidr.yaml
+  netplan apply
+  ip route get #{SERVICE_CIDR.split("/")[0]} | head -1
+  ### crictl to the containerd CRI socket, see docs/Trouble_Shooting.md
+  cat <<CRICTL > /etc/crictl.yaml
+  runtime-endpoint: unix:///run/containerd/containerd.sock
+  image-endpoint: unix:///run/containerd/containerd.sock
+  timeout: 10
+  debug: false
+  CRICTL
+  crictl version | head -2
+  echo "provisioned $(hostname) ${NODE_IP}"
+SHELL
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+  config.vm.box_check_update = false
+  # repository root is mounted to /vagrant in the VMs
+  if SYNC_TYPE == "rsync"
+    config.vm.synced_folder "..", "/vagrant", type: "rsync", rsync__exclude: [".git/", "vagrant/.vagrant/"]
+  else
+    config.vm.synced_folder "..", "/vagrant"
+  end
+
+  nodes.each do |name, (ip, cpus, memory)|
+    config.vm.define name do |node|
+      node.vm.hostname = name
+      node.vm.network "private_network", ip: ip
+      node.vm.provider "virtualbox" do |vb|
+        vb.name   = "ros_k8s_#{name}"
+        vb.cpus   = cpus
+        vb.memory = memory
+        # promiscuous mode on the host-only interface for the host network (hostNetwork: true) samples
+        vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+        vb.customize ["modifyvm", :id, "--audio-driver", "none"]
+      end
+      node.vm.provision "shell", inline: PROVISION, args: [ip]
+    end
+  end
+end

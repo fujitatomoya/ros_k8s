@@ -35,6 +35,46 @@ Be advised that the following command must be issued on the physical host that `
 > journalctl -e -u kubelet
 ```
 
+### `cilium-agent` stays in `Init:Error` with `Unable to contact k8s api-server` on the multi-homed node
+
+If the node has multiple network interfaces and the default route is not the interface used for the cluster (e.g. VirtualBox NAT interface on the Vagrant virtual machines, or the WiFi interface with the default route and the wired interface for the cluster on the robot), the connection from the host network namespace to the ClusterIP can be sent with the wrong source address.
+`cilium-agent` init container `config` connects to the Kubernetes API server via the ClusterIP `10.96.0.1:443`, and it fails as following, then the node is tainted with `node.cilium.io/agent-not-ready:NoSchedule` and no application pods are scheduled to the node.
+
+```bash
+> kubectl -n kube-system get pods -l k8s-app=cilium -o wide
+NAME           READY   STATUS       RESTARTS      AGE   IP              NODE
+cilium-6ws76   0/1     Init:Error   6 (4m ago)    13m   192.168.56.11   vm-worker
+> kubectl -n kube-system logs cilium-6ws76 -c config | tail -1
+level=fatal msg="Build config failed" subsys=cilium-dbg error="failed to start: Get \"https://10.96.0.1:443/api/v1/namespaces/kube-system\": dial tcp 10.96.0.1:443: i/o timeout"
+> kubectl describe node vm-worker | grep Taints
+Taints:             node.cilium.io/agent-not-ready:NoSchedule
+
+### on the node, the SYN packet to the API server is sent with the source address of the default route interface (10.0.2.15), not the cluster interface (192.168.56.11)
+> ip route get 10.96.0.1
+10.96.0.1 via 10.0.2.2 dev eth0 src 10.0.2.15 uid 0
+> tcpdump -nn -i any 'tcp port 6443 and (tcp[tcpflags] & tcp-syn != 0)'
+eth1  Out IP 10.0.2.15.58134 > 192.168.56.10.6443: Flags [S], ...
+```
+
+Add the route for the Kubernetes service CIDR (`10.96.0.0/12` in default) to the cluster interface on every node, so that the source address is selected from the cluster interface.
+The following is the netplan configuration used by [Setup Vagrant Virtual Machine Cluster](./Setup_Vagrant_Cluster.md#virtual-machines).
+
+```bash
+> cat <<EOF > /etc/netplan/60-ros-k8s-service-cidr.yaml
+network:
+  version: 2
+  ethernets:
+    eth1:
+      routes:
+      - to: 10.96.0.0/12
+        scope: link
+EOF
+> chmod 600 /etc/netplan/60-ros-k8s-service-cidr.yaml
+> netplan apply
+> ip route get 10.96.0.1
+10.96.0.1 dev eth1 src 192.168.56.11 uid 0
+```
+
 ### coredns pods does not become `Ready`
 
 - coredns stays in `Pending` state.
@@ -178,6 +218,38 @@ Disable swap on the node and also in `/etc/fstab` so that it stays disabled afte
 
 ## Container Runtime
 
+### ROS 1 `rosout` is OOM killed, the host hangs with `roscore` containers
+
+Docker Engine `v25` or later (`LimitNOFILE=infinity` in `docker.service`) gives the containers the maximum open file limit of the kernel (`fs.nr_open`), which is `1073741816` in default.
+kind nodes are the Docker containers, and `containerd` in the kind node passes this limit to the pod containers.
+(`containerd.io` package on the physical host sets `LimitNOFILE=524288` in `containerd.service`, so that this problem is specific to the kind cluster or the container runtime started with `LimitNOFILE=infinity`.)
+ROS Noetic `rosout` (`ros_comm` 1.16.0, e.g. `tomoyafujita/ros:noetic` on Docker Hub) allocates the buffer based on `RLIMIT_NOFILE` (8 bytes for each file descriptor), that is **8 GiB** for each `roscore` container, and the Python ROS 1 tools (`rostopic`, `rospy`) iterate over the file descriptors up to the limit on the start-up that consumes the CPU for a long time.
+[ROS DaemonSet Deployment](./ROS_Deployment_Demonstration.md#ros-daemonset-deployment-with-cni) starts `roscore` on every node, so that the whole host system can be out of memory.
+
+```bash
+> kubectl get pods
+NAME                   READY   STATUS    RESTARTS      AGE
+ros1-deamonset-cgfkm   3/3     Running   2 (72s ago)   2m46s
+> kubectl get pods ros1-deamonset-cgfkm -o jsonpath='{.status.containerStatuses[?(@.name=="ros1-master")].lastState}'
+{"terminated":{"exitCode":137,"reason":"OOMKilled",...}}
+> kubectl get events | grep OOM
+Warning   SystemOOM   node/kind-worker   System OOM encountered, victim process: rosout, pid: 85059
+
+### on the host system
+> journalctl -k | grep rosout
+kernel: Out of memory: Killed process 85059 (rosout) total-vm:8655564kB, anon-rss:8388736kB, ...
+> docker exec kind-worker cat /proc/1/limits | grep 'open files'
+Max open files            1073741816           1073741816           files
+```
+
+The ROS 1 deployment descriptions in this repository set the limit in the container command (`ulimit -n 65536;`) before starting the ROS 1 application as the workaround, keep that in your own descriptions as well.
+The ROS Noetic image built from [Dockerfile.noetic](./../docker/Dockerfile.noetic) today (`ros_comm` 1.17.4) does not have this problem, but the limit is still worth setting since the Python tools are affected.
+
+```yaml
+        command: ["/bin/bash", "-c"]
+        args: ["ulimit -n 65536; source /opt/ros/$ROS_DISTRO/setup.bash && roscore"]
+```
+
 ### Inspect containers on the node with `crictl`
 
 Usually application containers can be inspected with `kubectl logs` and `kubectl exec` via Kubernetes API server.
@@ -186,14 +258,15 @@ This is likely to happen when deploying system containers such as CNI plugin, CD
 Besides that, Kubernetes removed `dockershim` since v1.24, so that `docker ps` does not show the containers managed by `kubelet` via containerd any more.
 
 In those cases, we can inspect the pods and containers on the node directly via [CRI (Container Runtime Interface)](https://kubernetes.io/docs/concepts/architecture/cri/) with [`crictl`](https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/) command.
-`crictl` is provided by [cri-tools](https://github.com/kubernetes-sigs/cri-tools), which is installed as the dependency of `kubeadm` package by [Install Kubernetes Packages](./Install_Kubernetes_Packages.md).
+`crictl` is provided by [cri-tools](https://github.com/kubernetes-sigs/cri-tools), which is installed by [Install Kubernetes Packages](./Install_Kubernetes_Packages.md).
+`cri-tools` used to be the dependency of `kubeadm` package (up to Kubernetes v1.36), but it is not any more since v1.37, so that it needs to be installed explicitly from the same apt repository.
 
 ```bash
-### crictl is installed with kubeadm (cri-tools dependency)
+### kubeadm v1.36 or earlier depends on cri-tools, but v1.37 does not
 > apt-cache depends kubeadm | grep cri-tools
-  Depends: cri-tools
+> apt install -y cri-tools
 > crictl --version
-crictl version v1.37.x
+crictl version v1.37.0
 ```
 
 > [!NOTE]
@@ -340,6 +413,24 @@ root@kind-worker:/# journalctl -u kubelet -e
 ```
 
 ## Cilium
+
+### `cilium multicast add` crashes with `fatal error: concurrent map writes`
+
+`cilium multicast add --group-ip <group>` configures the group and the subscribers on all nodes in parallel, and Cilium CLI (`v0.20.1` - `v0.20.3`) sometimes crashes with the following race condition while populating the node map.
+
+```bash
+> cilium multicast add --group-ip 239.255.0.1
+fatal error: concurrent map writes
+
+goroutine 115 [running]:
+internal/runtime/maps.fatal({0x35d7ef9?, 0x9436130?})
+	/usr/local/go/src/runtime/panic.go:1195 +0x18
+github.com/cilium/cilium/cilium-cli/multicast.(*Multicast).populateMaps.func1(...)
+	/cilium/vendor/github.com/cilium/cilium/cilium-cli/multicast/multicast.go:419 +0x147
+```
+
+Nothing is configured in that case, just retry the same command and confirm the result with `cilium multicast list subscriber --all`.
+The second run reports `No available nodes to be added to multicast group` if the group is already configured on the node, that is expected.
 
 ### ROS 2 nodes on different cluster nodes cannot discover each other
 

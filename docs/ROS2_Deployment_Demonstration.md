@@ -16,7 +16,7 @@ If we can be sure that RMW implementation does not rely on UDP multicast, we can
 Most likely this case applied to use case of [Fast DDS Discovery Server](./ROS2_Deployment_Intermediate.md#ros-2-fast-dds-discovery-server) or static peers (`ROS_STATIC_PEERS`) and so on, using TCP/UDP unicast packets.
 
 > [!NOTE]
-> `tomoyafujita/ros:rolling` container image is built from the official `ros:rolling` image, which is currently Ubuntu 26.04 based.
+> `tomoyafujita/ros:rolling` container image is built from the official `ros:rolling` image, which is currently Ubuntu 26.04 based. (The image published on [Docker Hub](https://hub.docker.com/r/tomoyafujita/ros/tags) may be older than the image built from [Dockerfile.rolling](./../docker/Dockerfile.rolling) today, check the tag's last pushed date.)
 > Container images are agnostic from the host system, so that it can be deployed on Ubuntu 24.04 host system without any problems.
 > If you prefer the Ubuntu 24.04 based LTS distribution, build and use `ros:jazzy` instead, see [Build Docker Images](./Build_Docker_Images.md).
 > The following examples are verified with the images built from [Dockerfile.rolling](./../docker/Dockerfile.rolling) and [Dockerfile.jazzy](./../docker/Dockerfile.jazzy) on the kind cluster, see [Load local container images](./Setup_Virtualized_Cluster.md#multiple-node-cluster-setup) to use the locally built image in the kind cluster.
@@ -231,7 +231,7 @@ pod/ros2-fastdds-listener-id10 created
 
 > kubectl get pods -o wide
 NAME                         READY   STATUS    RESTARTS      AGE   IP             NODE                 NOMINATED NODE   READINESS GATES
-ros2-fastdds-listener-id10   1/1     Running   1 (17s ago)   18s   10.244.0.199   kind-control-plane   <none>           <none>
+ros2-fastdds-listener-id10   1/1     Running   0             18s   10.244.0.199   kind-control-plane   <none>           <none>
 ros2-fastdds-listener-id5    1/1     Running   0             18s   10.244.1.236   kind-worker          <none>           <none>
 ros2-fastdds-talker-id10     1/1     Running   0             18s   10.244.1.66    kind-worker          <none>           <none>
 ros2-fastdds-talker-id5      1/1     Running   0             18s   10.244.0.232   kind-control-plane   <none>           <none>
